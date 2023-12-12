@@ -238,34 +238,32 @@ class SelectelProvider(BaseProvider):
             'values': [r['content'] for r in rrset["records"]],
         }
 
-    # TODO: fix it
-    def _data_for_SRV(self, _type, records):
+    def _data_for_SRV(self, _type, rrset):
         values = []
-        for record in records:
+        for record in rrset["records"]:
+            priority, weight, port, target = record["content"].split(" ")
             values.append(
                 {
-                    'priority': record['priority'],
-                    'weight': record['weight'],
-                    'port': record['port'],
-                    'target': require_root_domain(record["target"]),
+                    'priority': priority,
+                    'weight': weight,
+                    'port': port,
+                    'target': require_root_domain(target),
                 }
             )
-
-        return {'type': _type, 'ttl': records[0]['ttl'], 'values': values}
+        return {'type': _type, 'ttl': rrset['ttl'], 'values': values}
     
-    # TODO: fix it
-    def _data_for_SSHFP(self, _type, records):
+    def _data_for_SSHFP(self, _type, rrset):
         values = []
-        for record in records:
+        for record in rrset["records"]:
+            algorithm, fingerprint_type, fingerprint = record["content"].split(" ")
             values.append(
                 {
-                    'algorithm': record['algorithm'],
-                    'fingerprint_type': record['fingerprint_type'],
-                    'fingerprint': f'{record["fingerprint"]}.',
+                    'algorithm': algorithm,
+                    'fingerprint_type': fingerprint_type,
+                    'fingerprint': fingerprint,
                 }
             )
-
-        return {'type': _type, 'ttl': records[0]['ttl'], 'values': values}
+        return {'type': _type, 'ttl': rrset['ttl'], 'values': values}
 
     # TODO: refactor it
     def populate(self, zone, target=False, lenient=False):
