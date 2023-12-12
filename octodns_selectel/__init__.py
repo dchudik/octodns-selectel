@@ -135,12 +135,12 @@ class SelectelProvider(BaseProvider):
         self.delete_rrset(zone_name, existing._type, existing.name)
 
     def _params_for_multiple(self, record):
-            yield {
-                'records': list(map(lambda value: {'content':value, 'disabled':False}, record.values)),
-                'name': record.fqdn,
-                'ttl': max(self.MIN_TTL, record.ttl),
-                'type': record._type,
-            }
+        yield {
+            'records': list(map(lambda value: {'content':value, 'disabled':False}, record.values)),
+            'name': record.fqdn,
+            'ttl': max(self.MIN_TTL, record.ttl),
+            'type': record._type,
+        }
 
     def _params_for_single(self, record):
         yield {
@@ -151,36 +151,30 @@ class SelectelProvider(BaseProvider):
         }
     # TODO: test it
     def _params_for_MX(self, record):
-        for value in record.values:
-            yield {
-                'content': value.exchange,
-                'name': record.fqdn,
-                'ttl': max(self.MIN_TTL, record.ttl),
-                'type': record._type,
-                'priority': value.preference,
-            }
+        yield {
+            'records': list(map(lambda value: {'content':f'{value.preference} {value.exchange}', 'disabled':False}, record.values)),
+            'name': record.fqdn,
+            'ttl': max(self.MIN_TTL, record.ttl),
+            'type': record._type,
+        }
+
     # TODO: test it
     def _params_for_SRV(self, record):
-        for value in record.values:
-            yield {
+        yield {
                 'name': record.fqdn,
-                'target': value.target,
                 'ttl': max(self.MIN_TTL, record.ttl),
                 'type': record._type,
-                'port': value.port,
-                'weight': value.weight,
-                'priority': value.priority,
+                'records': list(map(lambda value: 
+                                    {'content':f'{value.priority} {value.weight} {value.port} {value.target}', 
+                                     'disabled':False}, record.values)),
             }
     # TODO: test it
     def _params_for_SSHFP(self, record):
-        for value in record.values:
-            yield {
+        yield {
                 'name': record.fqdn,
                 'ttl': max(self.MIN_TTL, record.ttl),
                 'type': record._type,
-                'algorithm': value.algorithm,
-                'fingerprint_type': value.fingerprint_type,
-                'fingerprint': value.fingerprint,
+                'records': list(map(lambda value: {'content':f'{value.algorithm} {value.fingerprint_type} {value.fingerprint}', 'disabled':False}, record.values)),
             }
 
     _params_for_A = _params_for_multiple
@@ -337,6 +331,7 @@ class SelectelProvider(BaseProvider):
             zone_id = self.create_zone(zone_name)['uuid']
 
         path = f'/zones/{zone_id}/rrset'
+
         return self._request('POST', path, data=data)
 
     def delete_rrset(self, zone, _type, rrset_name):
@@ -346,7 +341,6 @@ class SelectelProvider(BaseProvider):
         if not rrsets:
             path = f'/zones/{zone_id}/rrset'
             rrsets = self._request('GET', path)
-        # TODO: check rrset name if it fqdn (subdomain with domain)
         full_domain = f'{rrset_name}.{require_root_domain(zone)}'
         delete_count, skip_count = 0, 0
         for rrset in rrsets:
