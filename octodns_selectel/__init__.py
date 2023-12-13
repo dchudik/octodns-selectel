@@ -300,7 +300,7 @@ class SelectelProvider(BaseProvider):
         path = '/zones'
         data = {'name': name}
         resp = self._request('POST', path, data=data)
-        self._zone_list[name] = resp
+        self._zone_list[require_root_domain(name)] = resp
         return resp
 
     def zone_list(self):
@@ -314,7 +314,7 @@ class SelectelProvider(BaseProvider):
     def zone_rrsets(self, zone):
         self.log.debug('View rrset. Zone: %s', zone)
         zone_rrsets = []
-        zone_by_name = self._zone_list.get(zone.name)
+        zone_by_name = self._zone_list.get(require_root_domain(zone.name))
         zone_id = zone_by_name.get("uuid") if zone_by_name else None
         if zone_id:
             path = f'/zones/{zone_id}/rrset'
@@ -336,7 +336,7 @@ class SelectelProvider(BaseProvider):
     def delete_rrset(self, zone, _type, rrset_name):
         self.log.debug('Delete rrsets. Zone: %s, Type: %s, Rrset Name: %s', zone, _type, rrset_name)
         zone_id = self._zone_list[require_root_domain(zone)]['uuid']
-        rrsets = self._zone_rrsets.get(f'{zone}.', False)
+        rrsets = self._zone_rrsets.get(require_root_domain(zone), False)
         if not rrsets:
             path = f'/zones/{zone_id}/rrset'
             rrsets = self._request('GET', path)
