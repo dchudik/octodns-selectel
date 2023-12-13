@@ -49,6 +49,8 @@ class SelectelClient(object):
         elif resp.status_code == 404:
             return {}
         resp.raise_for_status()
+        if method == "DELETE":
+            return {}
         return resp.json()
     
     def _request_with_offset(self, path, offset=0):
@@ -89,7 +91,7 @@ class SelectelClient(object):
     def create_rrset(self, zone_id, data):
         path = f'/zones/{zone_id}/rrset'
         return self._request('POST', path, data=data)
-
+    
     def delete_rrset(self, zone_id, rrset_id):
         path = f'/zones/{zone_id}/rrset/{rrset_id}'
         self._request('DELETE', path)
@@ -108,6 +110,7 @@ class SelectelProvider(BaseProvider):
         super().__init__(id, *args, **kwargs)
         self._client = SelectelClient(token)
         self._zones = self.zones()
+        self.log.debug("_zones=%s", self._zones.items())
         self._zone_rrsets = {}
 
     # TODO: check when using this function
@@ -129,7 +132,7 @@ class SelectelProvider(BaseProvider):
         self.log.debug(
             '_apply: zone=%s, len(changes)=%d', desired.name, len(changes)
         )
-        zone_name = desired.name[:-1]
+        zone_name = desired.name
         for change in changes:
             class_name = change.__class__.__name__
             getattr(self, f'_apply_{class_name}'.lower())(zone_name, change)
@@ -282,16 +285,17 @@ class SelectelProvider(BaseProvider):
         )
 
     def _get_zone_id_by_name(self, zone_name):
-        zone = self._zones[zone_name]
+        zone = self._zones.get(zone_name,False)
         return zone["uuid"] if zone else ""
 
     def create_zone(self, name):
         self.log.debug('Create zone: %s', name)
         zone = self._client.create_zone(require_root_domain(name))
-        self._zones[zone.name] = zone
+        self._zones[zone["name"]] = zone
         return zone
 
     def zones(self):
+        self.log.debug('View zones')
         zones = self._client.zones()
         zones_dict = {}
         for zone in zones:
@@ -301,28 +305,30 @@ class SelectelProvider(BaseProvider):
     def zone_rrsets(self, zone):
         self.log.debug('View rrsets. Zone: %s', zone.name)
         zone_id = self._get_zone_id_by_name(zone.name)
-        zone_rrsets = self._client.zone_rrsets(zone_id)
-        self._zone_rrsets[zone.name] = zone_rrsets
+        zone_rrsets = []
+        if zone_id:
+            zone_rrsets = self._client.zone_rrsets(zone_id)
+            self._zone_rrsets[zone.name] = zone_rrsets
         return zone_rrsets
 
     def _is_zone_already_created(self, zone_name):
         return zone_name in self._zones.keys()
     
-    def create_rrset(self, zone, data):
-        self.log.debug('Create rrset. Zone: %s, data %s', zone.name, data)
-        if self._is_zone_already_created(zone.name):
-            zone_id = self._get_zone_id_by_name(zone.name)
+    def create_rrset(self, zone_name, data):
+        self.log.debug('Create rrset. Zone: %s, data %s', zone_name, data)
+        if self._is_zone_already_created(zone_name):
+            zone_id = self._get_zone_id_by_name(zone_name)
         else:
-            zone_id = self.create_zone(zone.name)['uuid']
+            zone_id = self.create_zone(zone_name)['uuid']
         
         return self._client.create_rrset(zone_id, data)
 
-    def delete_rrset(self, zone, rrset_type, rrset_name):
+    def delete_rrset(self, zone_name, rrset_type, rrset_name):
         self.log.debug('Delete rrsets. Zone name: %s, rrset type: %s, rrset name: %s', 
-                       zone.name, rrset_type, rrset_name)
-        zone_id = self._get_zone_id_by_name(zone.name)
-        rrsets = self._zone_rrsets.get(zone.name)
-        fqdn = f'{rrset_name}.{zone.name}' if rrset_name else zone.name
+                       zone_name, rrset_type, rrset_name)
+        zone_id = self._get_zone_id_by_name(zone_name)
+        rrsets = self._zone_rrsets.get(zone_name)
+        fqdn = f'{rrset_name}.{zone_name}' if rrset_name else zone_name
         delete_count, skip_count = 0, 0
         for rrset in rrsets:
             if rrset['type'] == rrset_type and rrset['name'] == fqdn:
