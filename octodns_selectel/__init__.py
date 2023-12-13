@@ -237,18 +237,17 @@ class SelectelProvider(BaseProvider):
 
     _data_for_ALIAS = _data_for_CNAME
 
+    def _parse_record_SRV(record):
+        priority, weight, port, target = record["content"].split(" ")
+        return {
+            'priority': priority,
+            'weight': weight,
+            'port': port,
+            'target': require_root_domain(target),
+        }
+
     def _data_for_SRV(self, _type, rrset):
-        values = []
-        for record in rrset["records"]:
-            priority, weight, port, target = record["content"].split(" ")
-            values.append(
-                {
-                    'priority': priority,
-                    'weight': weight,
-                    'port': port,
-                    'target': require_root_domain(target),
-                }
-            )
+        values = list(map(lambda record: self._parse_record_SRV(record), rrset["records"]))
         return {'type': _type, 'ttl': rrset['ttl'], 'values': values}
     
     def _parse_record_SSHFP(record):
@@ -318,7 +317,6 @@ class SelectelProvider(BaseProvider):
         
         return self._client.create_rrset(zone_id, data)
 
-    # TODO: refactor it
     def delete_rrset(self, zone, rrset_type, rrset_name):
         self.log.debug('Delete rrsets. Zone name: %s, rrset type: %s, rrset name: %s', 
                        zone.name, rrset_type, rrset_name)
