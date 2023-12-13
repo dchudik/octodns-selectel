@@ -340,8 +340,9 @@ class SelectelProvider(BaseProvider):
         if not rrsets:
             path = f'/zones/{zone_id}/rrset'
             rrsets = self._request('GET', path)
-        full_domain = f'{rrset_name}.{require_root_domain(zone)}'
+        full_domain = f'{rrset_name}.{require_root_domain(zone)}' if rrset_name else require_root_domain(zone)
         delete_count, skip_count = 0, 0
+        self.log.debug("fqdn=%s, rrsets=%s", full_domain, rrsets)
         for rrset in rrsets:
             if rrset['type'] == _type and rrset['name'] == full_domain:
                 rrset_id = rrset["uuid"]
