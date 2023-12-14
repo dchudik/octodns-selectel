@@ -8,7 +8,7 @@ from requests.exceptions import HTTPError
 from octodns.provider.base import BaseProvider
 from octodns.record import Record, Update
 
-from .selectel_client import SelectelClient
+from .dns_client import DNSClient
 
 # TODO: remove __VERSION__ with the next major version release
 __version__  = '0.0.4'
@@ -31,7 +31,7 @@ class SelectelProvider(BaseProvider):
         self.log = getLogger(f'SelectelProvider[{id}]')
         self.log.debug('__init__: id=%s', id)
         super().__init__(id, *args, **kwargs)
-        self._client = SelectelClient(library_version=__version__, token=token)
+        self._client = DNSClient(__version__, token)
         self._zones = self.zones()
         self._zone_rrsets = {}
 
@@ -218,7 +218,7 @@ class SelectelProvider(BaseProvider):
 
     def zones(self):
         self.log.debug('View zones')
-        zones = self._client.zones()
+        zones = self._client.list_zones()
         zones_dict = {}
         for zone in zones:
             zones_dict[zone['name']] = zone
@@ -229,7 +229,7 @@ class SelectelProvider(BaseProvider):
         zone_id = self._get_zone_id_by_name(zone.name)
         zone_rrsets = []
         if zone_id:
-            zone_rrsets = self._client.zone_rrsets(zone_id)
+            zone_rrsets = self._client.list_rrsets(zone_id)
             self._zone_rrsets[zone.name] = zone_rrsets
         return zone_rrsets
 
