@@ -72,12 +72,12 @@ class DNSClient:
         return resp
 
     def list_rrsets(self, zone_uuid):
-        path = self._rrset_path_specific(zone_uuid)
+        path = self._rrset_path(zone_uuid)
         zone_rrsets = self._request_all_entities(path)
         return zone_rrsets
 
     def create_rrset(self, zone_uuid, data):
-        path = self._rrset_path_specific(zone_uuid)
+        path = self._rrset_path(zone_uuid)
         return self._request('POST', path, data=data)
 
     def delete_rrset(self, zone_uuid, rrset_uuid):
