@@ -10,16 +10,11 @@ from octodns.provider.base import BaseProvider
 from octodns.record import Record, Update
 
 from .dns_client import DNSClient
+from .helpers import require_root_domain
+from .mappings import to_octodns_record, to_selectel_rrset
 
 # TODO: remove __VERSION__ with the next major version release
 __version__ = '0.0.4'
-
-
-def require_root_domain(fqdn):
-    if fqdn.endswith('.'):
-        return fqdn
-
-    return f'{fqdn}.'
 
 
 class SelectelProvider(BaseProvider):
@@ -93,11 +88,10 @@ class SelectelProvider(BaseProvider):
         return rrset["uuid"] if rrset else ""
 
     def _apply_create(self, zone_id, change):
-        new = change.new
-        params_for = getattr(self, f'_params_for_{new._type}')
-        for params in params_for(new):
-            self.log.debug("params: %s", params_for(new))
-            self.create_rrset(zone_id, params)
+        new_record = change.new
+        print("New: %s" % change.new)
+        rrset = to_selectel_rrset(new_record)
+        self.create_rrset(zone_id, rrset)
 
     def _apply_update(self, zone_id, change):
         existing = change.existing
@@ -114,159 +108,6 @@ class SelectelProvider(BaseProvider):
         )
         self.delete_rrset(zone_id, rrset_id)
 
-    def _base_rrset_info_from_record(self, record):
-        return {
-            'name': record.fqdn,
-            'ttl': max(self.MIN_TTL, record.ttl),
-            'type': record._type,
-        }
-
-    def _params_for_multiple(self, record):
-        rrset = self._base_rrset_info_from_record(record)
-        rrset["records"] = list(
-            map(
-                lambda value: {'content': value, 'disabled': False},
-                record.values,
-            )
-        )
-        yield rrset
-
-    def _params_for_multiple_TXT(self, record):
-        rrset = self._base_rrset_info_from_record(record)
-        rrset["records"] = list(
-            map(
-                lambda value: {'content': '"%s"' % value, 'disabled': False},
-                record.values,
-            )
-        )
-        yield rrset
-
-    def _params_for_single(self, record):
-        rrset = self._base_rrset_info_from_record(record)
-        rrset["records"] = [{'content': record.value, 'disabled': False}]
-        yield rrset
-
-    def _params_for_MX(self, record):
-        rrset = self._base_rrset_info_from_record(record)
-        rrset["records"] = list(
-            map(
-                lambda value: {
-                    'content': f'{value.preference} {value.exchange}',
-                    'disabled': False,
-                },
-                record.values,
-            )
-        )
-        yield rrset
-
-    def _params_for_SRV(self, record):
-        rrset = self._base_rrset_info_from_record(record)
-        rrset["records"] = list(
-            map(
-                lambda value: {
-                    'content': f'{value.priority} {value.weight} {value.port} {value.target}',
-                    'disabled': False,
-                },
-                record.values,
-            )
-        )
-        yield rrset
-
-    def _params_for_SSHFP(self, record):
-        rrset = self._base_rrset_info_from_record(record)
-        rrset["records"] = list(
-            map(
-                lambda value: {
-                    'content': f'{value.algorithm} {value.fingerprint_type} {value.fingerprint}',
-                    'disabled': False,
-                },
-                record.values,
-            )
-        )
-        yield rrset
-
-    _params_for_A = _params_for_multiple
-    _params_for_AAAA = _params_for_multiple
-    _params_for_NS = _params_for_multiple
-    _params_for_TXT = _params_for_multiple_TXT
-
-    _params_for_CNAME = _params_for_single
-    _params_for_ALIAS = _params_for_single
-
-    def _data_with_content(self, _type, rrset):
-        return {
-            'ttl': rrset['ttl'],
-            'type': _type,
-            'values': [r['content'] for r in rrset["records"]],
-        }
-
-    _data_for_A = _data_with_content
-    _data_for_AAAA = _data_with_content
-    _data_for_TXT = _data_with_content
-
-    def _data_for_NS(self, _type, rrset):
-        return {
-            'ttl': rrset['ttl'],
-            'type': _type,
-            'values': [
-                require_root_domain(r["content"]) for r in rrset["records"]
-            ],
-        }
-
-    def _data_for_MX(self, _type, rrset):
-        values = list(
-            map(
-                lambda record: {
-                    'preference': record.split(" ")[0],
-                    'exchange': require_root_domain(record.split(" ")[1]),
-                },
-                rrset["records"],
-            )
-        )
-        return {'ttl': rrset['ttl'], 'type': _type, 'values': values}
-
-    def _data_for_CNAME(self, _type, rrset):
-        value = rrset["records"][0]["content"]
-        return {
-            'ttl': rrset['ttl'],
-            'type': _type,
-            'value': require_root_domain(value),
-        }
-
-    _data_for_ALIAS = _data_for_CNAME
-
-    def _parse_record_SRV(record):
-        priority, weight, port, target = record["content"].split(" ")
-        return {
-            'priority': priority,
-            'weight': weight,
-            'port': port,
-            'target': require_root_domain(target),
-        }
-
-    def _data_for_SRV(self, _type, rrset):
-        values = list(
-            map(lambda record: self._parse_record_SRV(record), rrset["records"])
-        )
-        return {'type': _type, 'ttl': rrset['ttl'], 'values': values}
-
-    def _parse_record_SSHFP(record):
-        algorithm, fingerprint_type, fingerprint = record["content"].split(" ")
-        return {
-            'algorithm': algorithm,
-            'fingerprint_type': fingerprint_type,
-            'fingerprint': fingerprint,
-        }
-
-    def _data_for_SSHFP(self, _type, rrset):
-        values = list(
-            map(
-                lambda record: self._parse_record_SSHFP(record),
-                rrset["records"],
-            )
-        )
-        return {'type': _type, 'ttl': rrset['ttl'], 'values': values}
-
     def populate(self, zone, target=False, lenient=False):
         self.log.debug(
             'populate: name=%s, target=%s, lenient=%s',
@@ -277,13 +118,16 @@ class SelectelProvider(BaseProvider):
         before = len(zone.records)
         rrsets = self.list_rrsets(zone)
         for rrset in rrsets:
-            rrset_name = zone.hostname_from_fqdn(rrset['name'])
             rrset_type = rrset['type']
             if rrset_type in self.SUPPORTS:
-                data_for = getattr(self, f'_data_for_{rrset_type}')
-                data = data_for(rrset_type, rrset)
+                record_data = to_octodns_record(rrset)
+                rrset_hostname = zone.hostname_from_fqdn(rrset['name'])
                 record = Record.new(
-                    zone, rrset_name, data, source=self, lenient=lenient
+                    zone,
+                    rrset_hostname,
+                    record_data,
+                    source=self,
+                    lenient=lenient,
                 )
                 zone.add_record(record)
         self.log.info('populate: found %s records', len(zone.records) - before)
