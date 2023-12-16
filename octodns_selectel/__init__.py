@@ -104,7 +104,7 @@ class SelectelProvider(BaseProvider):
     def _apply_delete(self, zone_id, change):
         existing = change.existing
         rrset_id = self._get_rrset_id(
-            existing.zone, existing._type, existing.fqdn
+            existing.zone.name, existing._type, existing.fqdn
         )
         self.delete_rrset(zone_id, rrset_id)
 

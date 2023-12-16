@@ -20,6 +20,8 @@ def to_selectel_rrset(record):
             )
         case _ if "CNAME" or "ALIAS":
             rrset_records = [{'content': record.value, 'disabled': False}]
+        # TODO: fix error: parsed as \'"foo2"\' got 422
+        # {'error': 'bad_request', 'description': 'Not in expected format (parsed as \'"foo2"\')'}
         case "TXT":
             rrset_records = list(
                 map(
@@ -27,6 +29,7 @@ def to_selectel_rrset(record):
                     record.values,
                 )
             )
+            print("Records: %s" % rrset_records)
         case "MX":
             rrset_records = list(
                 map(
@@ -81,7 +84,7 @@ def to_octodns_record(rrset):
     record = dict(type=rrset_type, ttl=rrset["ttl"])
     record_values = []
     match rrset_type:
-        case _ if "A" or "AAAA" or "NS":
+        case _ if "A" or "AAAA" or "NS" or "TXT":
             record_values = [r['content'] for r in rrset["records"]]
         case _ if "CNAME" or "ALIAS":
             record_values = require_root_domain(rrset["records"][0]["content"])
@@ -89,8 +92,11 @@ def to_octodns_record(rrset):
             record_values = [
                 require_root_domain(r["content"]) for r in rrset["records"]
             ]
-        case "TXT":
-            pass
+        # TODO: fix unwrap TXT
+        # case "TXT":
+        #     print([r['content'] for r in rrset["records"]])
+        #     print([r['content'].strip('\"') for r in rrset["records"]])
+        #     record_values = [r['content'].strip('\"') for r in rrset["records"]]
         case "SRV":
             for record in rrset["records"]:
                 priority, weight, port, target = record["content"].split(" ")

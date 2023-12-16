@@ -58,6 +58,9 @@ class DNSClient:
                 raise ApiException('Resource already created.')
             case _ if resp.status_code >= 500:
                 raise ApiException('Internal server error.')
+            case _:
+                print(resp.json())
+                resp.raise_for_status()
         try:
             return resp.json()
         except ValueError:
