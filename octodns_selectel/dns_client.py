@@ -54,10 +54,11 @@ class DNSClient:
             "GET", path, dict(limit=self._PAGINATION_LIMIT, offset=offset)
         )
         next_offset = resp["next_offset"]
+        records += resp["result"]
         if next_offset == 0:
-            return records + resp["result"]
+            return records
         return self._request_all_entities(
-            path, records + resp["result"], next_offset
+            path, records, next_offset
         )
 
     def list_zones(self):
