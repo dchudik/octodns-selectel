@@ -55,7 +55,7 @@ class DNSClient:
         )
         next_offset = resp["next_offset"]
         if next_offset == 0:
-            return records
+            return records + resp["result"]
         return self._request_all_entities(
             path, records + resp["result"], next_offset
         )
