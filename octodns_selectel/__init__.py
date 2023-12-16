@@ -3,6 +3,7 @@
 #
 
 from logging import getLogger
+
 from requests.exceptions import HTTPError
 
 from octodns.provider.base import BaseProvider
@@ -11,7 +12,8 @@ from octodns.record import Record, Update
 from .dns_client import DNSClient
 
 # TODO: remove __VERSION__ with the next major version release
-__version__  = '0.0.4'
+__version__ = '0.0.4'
+
 
 def require_root_domain(fqdn):
     if fqdn.endswith('.'):
@@ -32,7 +34,7 @@ class SelectelProvider(BaseProvider):
         self.log.debug('__init__: id=%s', id)
         super().__init__(id, *args, **kwargs)
         self._client = DNSClient(__version__, token)
-        self._zones = self.zones()
+        self._zones = self.group_existing_zones_by_name()
         self._zone_rrsets = {}
 
     # TODO: check when using this function
@@ -84,39 +86,66 @@ class SelectelProvider(BaseProvider):
 
     def _params_for_multiple(self, record):
         rrset = self._base_rrset_info_from_record(record)
-        rrset["records"] = list(map(lambda value: {'content':value, 
-                                                   'disabled':False}, record.values))
+        rrset["records"] = list(
+            map(
+                lambda value: {'content': value, 'disabled': False},
+                record.values,
+            )
+        )
         yield rrset
 
     def _params_for_multiple_TXT(self, record):
         rrset = self._base_rrset_info_from_record(record)
-        rrset["records"] = list(map(lambda value: {'content':'"%s"'%value, 
-                                                   'disabled':False}, record.values))
+        rrset["records"] = list(
+            map(
+                lambda value: {'content': '"%s"' % value, 'disabled': False},
+                record.values,
+            )
+        )
         yield rrset
 
     def _params_for_single(self, record):
         rrset = self._base_rrset_info_from_record(record)
-        rrset["records"] = [{'content':record.value, 'disabled':False}]
+        rrset["records"] = [{'content': record.value, 'disabled': False}]
         yield rrset
 
     def _params_for_MX(self, record):
         rrset = self._base_rrset_info_from_record(record)
-        rrset["records"] = list(map(lambda value: {'content':
-            f'{value.preference} {value.exchange}', 'disabled':False}, record.values))
+        rrset["records"] = list(
+            map(
+                lambda value: {
+                    'content': f'{value.preference} {value.exchange}',
+                    'disabled': False,
+                },
+                record.values,
+            )
+        )
         yield rrset
 
     def _params_for_SRV(self, record):
         rrset = self._base_rrset_info_from_record(record)
-        rrset["records"] = list(map(lambda value: 
-                                    {'content':f'{value.priority} {value.weight} {value.port} {value.target}', 
-                                     'disabled':False}, record.values))
+        rrset["records"] = list(
+            map(
+                lambda value: {
+                    'content': f'{value.priority} {value.weight} {value.port} {value.target}',
+                    'disabled': False,
+                },
+                record.values,
+            )
+        )
         yield rrset
 
     def _params_for_SSHFP(self, record):
         rrset = self._base_rrset_info_from_record(record)
-        rrset["records"] = list(map(lambda value: 
-                                    {'content':f'{value.algorithm} {value.fingerprint_type} {value.fingerprint}', 
-                                     'disabled':False}, record.values))
+        rrset["records"] = list(
+            map(
+                lambda value: {
+                    'content': f'{value.algorithm} {value.fingerprint_type} {value.fingerprint}',
+                    'disabled': False,
+                },
+                record.values,
+            )
+        )
         yield rrset
 
     _params_for_A = _params_for_multiple
@@ -133,23 +162,30 @@ class SelectelProvider(BaseProvider):
             'type': _type,
             'values': [r['content'] for r in rrset["records"]],
         }
-    
+
     _data_for_A = _data_with_content
     _data_for_AAAA = _data_with_content
-    _data_for_TXT = _data_with_content 
+    _data_for_TXT = _data_with_content
 
     def _data_for_NS(self, _type, rrset):
         return {
             'ttl': rrset['ttl'],
             'type': _type,
-            'values': [require_root_domain(r["content"]) for r in rrset["records"]],
+            'values': [
+                require_root_domain(r["content"]) for r in rrset["records"]
+            ],
         }
 
     def _data_for_MX(self, _type, rrset):
-        values = list(map(lambda record: {
+        values = list(
+            map(
+                lambda record: {
                     'preference': record.split(" ")[0],
                     'exchange': require_root_domain(record.split(" ")[1]),
-                }, rrset["records"]))
+                },
+                rrset["records"],
+            )
+        )
         return {'ttl': rrset['ttl'], 'type': _type, 'values': values}
 
     def _data_for_CNAME(self, _type, rrset):
@@ -172,9 +208,11 @@ class SelectelProvider(BaseProvider):
         }
 
     def _data_for_SRV(self, _type, rrset):
-        values = list(map(lambda record: self._parse_record_SRV(record), rrset["records"]))
+        values = list(
+            map(lambda record: self._parse_record_SRV(record), rrset["records"])
+        )
         return {'type': _type, 'ttl': rrset['ttl'], 'values': values}
-    
+
     def _parse_record_SSHFP(record):
         algorithm, fingerprint_type, fingerprint = record["content"].split(" ")
         return {
@@ -182,16 +220,25 @@ class SelectelProvider(BaseProvider):
             'fingerprint_type': fingerprint_type,
             'fingerprint': fingerprint,
         }
-    
+
     def _data_for_SSHFP(self, _type, rrset):
-        values = list(map(lambda record: self._parse_record_SSHFP(record), rrset["records"]))
+        values = list(
+            map(
+                lambda record: self._parse_record_SSHFP(record),
+                rrset["records"],
+            )
+        )
         return {'type': _type, 'ttl': rrset['ttl'], 'values': values}
 
     def populate(self, zone, target=False, lenient=False):
         self.log.debug(
-            'populate: name=%s, target=%s, lenient=%s', zone.name, target, lenient)
+            'populate: name=%s, target=%s, lenient=%s',
+            zone.name,
+            target,
+            lenient,
+        )
         before = len(zone.records)
-        rrsets = self.zone_rrsets(zone)
+        rrsets = self.list_rrsets(zone)
         for rrset in rrsets:
             rrset_name = zone.hostname_from_fqdn(rrset['name'])
             rrset_type = rrset['type']
@@ -202,12 +249,10 @@ class SelectelProvider(BaseProvider):
                     zone, rrset_name, data, source=self, lenient=lenient
                 )
                 zone.add_record(record)
-        self.log.info(
-            'populate: found %s records', len(zone.records) - before
-        )
+        self.log.info('populate: found %s records', len(zone.records) - before)
 
     def _get_zone_id_by_name(self, zone_name):
-        zone = self._zones.get(zone_name,False)
+        zone = self._zones.get(zone_name, False)
         return zone["uuid"] if zone else ""
 
     def create_zone(self, name):
@@ -216,15 +261,11 @@ class SelectelProvider(BaseProvider):
         self._zones[zone["name"]] = zone
         return zone
 
-    def zones(self):
+    def group_existing_zones_by_name(self):
         self.log.debug('View zones')
-        zones = self._client.list_zones()
-        zones_dict = {}
-        for zone in zones:
-            zones_dict[zone['name']] = zone
-        return zones_dict
+        return {zone['name']: zone for zone in self._client.zones()}
 
-    def zone_rrsets(self, zone):
+    def list_rrsets(self, zone):
         self.log.debug('View rrsets. Zone: %s', zone.name)
         zone_id = self._get_zone_id_by_name(zone.name)
         zone_rrsets = []
@@ -235,19 +276,23 @@ class SelectelProvider(BaseProvider):
 
     def _is_zone_already_created(self, zone_name):
         return zone_name in self._zones.keys()
-    
+
     def create_rrset(self, zone_name, data):
         self.log.debug('Create rrset. Zone: %s, data %s', zone_name, data)
         if self._is_zone_already_created(zone_name):
             zone_id = self._get_zone_id_by_name(zone_name)
         else:
             zone_id = self.create_zone(zone_name)['uuid']
-        
+
         return self._client.create_rrset(zone_id, data)
 
     def delete_rrset(self, zone_name, rrset_type, rrset_name):
-        self.log.debug('Delete rrsets. Zone name: %s, rrset type: %s, rrset name: %s', 
-                       zone_name, rrset_type, rrset_name)
+        self.log.debug(
+            'Delete rrsets. Zone name: %s, rrset type: %s, rrset name: %s',
+            zone_name,
+            rrset_type,
+            rrset_name,
+        )
         zone_id = self._get_zone_id_by_name(zone_name)
         rrsets = self._zone_rrsets.get(zone_name)
         fqdn = f'{rrset_name}.{zone_name}' if rrset_name else zone_name
