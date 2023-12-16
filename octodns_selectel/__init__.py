@@ -263,7 +263,7 @@ class SelectelProvider(BaseProvider):
 
     def group_existing_zones_by_name(self):
         self.log.debug('View zones')
-        return {zone['name']: zone for zone in self._client.zones()}
+        return {zone['name']: zone for zone in self._client.list_zones()}
 
     def list_rrsets(self, zone):
         self.log.debug('View rrsets. Zone: %s', zone.name)

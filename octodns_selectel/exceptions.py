@@ -10,4 +10,4 @@ class ApiException(SelectelException):
 
 
 class AuthException(ApiException):
-    raise ApiException('Authorization failed. Invalid or empty token.')
+    pass

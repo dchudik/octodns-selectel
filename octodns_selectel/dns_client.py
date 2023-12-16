@@ -44,7 +44,7 @@ class DNSClient:
         url = f'{self.API_URL}{path}'
         resp = self._sess.request(method, url, params, json=data)
         if resp.status_code == 401:
-            raise AuthException()
+            raise AuthException('Authorization failed. Invalid or empty token.')
         elif resp.status_code == 404:
             return {}
         return resp.json()
