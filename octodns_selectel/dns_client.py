@@ -42,7 +42,7 @@ class DNSClient:
 
     def _request(self, method, path, params=None, data=None):
         url = f'{self.API_URL}{path}'
-        resp = self._sess.request(method, url, params=params, json=data)
+        resp = self._sess.request(method, url, params, json=data)
         if resp.status_code == 401:
             raise AuthException()
         elif resp.status_code == 404:
