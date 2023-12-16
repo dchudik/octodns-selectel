@@ -2,7 +2,7 @@ from requests import Session
 
 from octodns import __VERSION__ as octodns_version
 
-from .exceptions import AuthException
+from .exceptions import ApiException, SelectelException
 
 
 class DNSClient:
@@ -43,11 +43,25 @@ class DNSClient:
     def _request(self, method, path, params=None, data=None):
         url = f'{self.API_URL}{path}'
         resp = self._sess.request(method, url, params, json=data)
-        if resp.status_code == 401:
-            raise AuthException('Authorization failed. Invalid or empty token.')
-        elif resp.status_code == 404:
-            return {}
-        return resp.json()
+        try:
+            match resp.status_code:
+                case 400:
+                    raise ApiException(
+                        f'Bad request. Description: {resp.json()["description"]}'
+                    )
+                case 401:
+                    raise ApiException(
+                        'Authorization failed. Invalid or empty token.'
+                    )
+                case 404:
+                    raise ApiException('Resource not found.')
+                case 409:
+                    raise ApiException('Resource already created.')
+                case _ if resp.status_code >= 500:
+                    raise ApiException('Internal server error.')
+            return resp.json
+        except Exception as e:
+            raise SelectelException(e)
 
     def _request_all_entities(self, path, records=[], offset=0):
         resp = self._request(
@@ -57,9 +71,7 @@ class DNSClient:
         records += resp["result"]
         if next_offset == 0:
             return records
-        return self._request_all_entities(
-            path, records, next_offset
-        )
+        return self._request_all_entities(path, records, next_offset)
 
     def list_zones(self):
         path = self._zone_path()
