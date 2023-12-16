@@ -7,7 +7,3 @@ class SelectelException(ProviderException):
 
 class ApiException(SelectelException):
     pass
-
-
-class AuthException(ApiException):
-    pass

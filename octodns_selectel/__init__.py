@@ -57,25 +57,62 @@ class SelectelProvider(BaseProvider):
             '_apply: zone=%s, len(changes)=%d', desired.name, len(changes)
         )
         zone_name = desired.name
+        zone_id = ""
+        if self._is_zone_already_created(zone_name):
+            zone_id = self._get_zone_id_by_name(zone_name)
+        else:
+            zone_id = self.create_zone(zone_name)['uuid']
         for change in changes:
-            class_name = change.__class__.__name__
-            getattr(self, f'_apply_{class_name}'.lower())(zone_name, change)
+            action = change.__class__.__name__
+            match action.lower():
+                case 'create':
+                    self._apply_create(zone_id, change)
+                case 'update':
+                    self._apply_update(zone_id, change)
+                case 'delete':
+                    self._apply_delete(zone_id, change)
+                case _:
+                    raise SelectelProvider(
+                        f'Method {action.lower()} not implemented'
+                    )
 
-    def _apply_create(self, zone_name, change):
+    def _is_zone_already_created(self, zone_name):
+        return zone_name in self._zones.keys()
+
+    def _get_rrset_id(self, zone_name, rrset_type, rrset_name):
+        rrsets = self._zone_rrsets.get(zone_name)
+        if not rrsets:
+            return ""
+        rrset = next(
+            filter(
+                lambda rrset: rrset["type"] == rrset_type
+                and rrset["name"] == rrset_name,
+                rrsets,
+            )
+        )
+        return rrset["uuid"] if rrset else ""
+
+    def _apply_create(self, zone_id, change):
         new = change.new
         params_for = getattr(self, f'_params_for_{new._type}')
         for params in params_for(new):
             self.log.debug("params: %s", params_for(new))
-            self.create_rrset(zone_name, params)
+            self.create_rrset(zone_id, params)
 
-    def _apply_update(self, zone_name, change):
-        self.log.debug("change=%s", change)
-        self._apply_delete(zone_name, change)
-        self._apply_create(zone_name, change)
-
-    def _apply_delete(self, zone_name, change):
+    def _apply_update(self, zone_id, change):
         existing = change.existing
-        self.delete_rrset(zone_name, existing._type, existing.name)
+        rrset_id = self._get_rrset_id(
+            existing.zone.name, existing._type, existing.fqdn
+        )
+        self.delete_rrset(zone_id, rrset_id)
+        self._apply_create(zone_id, change)
+
+    def _apply_delete(self, zone_id, change):
+        existing = change.existing
+        rrset_id = self._get_rrset_id(
+            existing.zone, existing._type, existing.fqdn
+        )
+        self.delete_rrset(zone_id, rrset_id)
 
     def _base_rrset_info_from_record(self, record):
         return {
@@ -274,37 +311,15 @@ class SelectelProvider(BaseProvider):
             self._zone_rrsets[zone.name] = zone_rrsets
         return zone_rrsets
 
-    def _is_zone_already_created(self, zone_name):
-        return zone_name in self._zones.keys()
-
-    def create_rrset(self, zone_name, data):
-        self.log.debug('Create rrset. Zone: %s, data %s', zone_name, data)
-        if self._is_zone_already_created(zone_name):
-            zone_id = self._get_zone_id_by_name(zone_name)
-        else:
-            zone_id = self.create_zone(zone_name)['uuid']
-
+    def create_rrset(self, zone_id, data):
+        self.log.debug('Create rrset. Zone id: %s, data %s', zone_id, data)
         return self._client.create_rrset(zone_id, data)
 
-    def delete_rrset(self, zone_name, rrset_type, rrset_name):
+    def delete_rrset(self, zone_id, rrset_id):
         self.log.debug(
-            'Delete rrsets. Zone name: %s, rrset type: %s, rrset name: %s',
-            zone_name,
-            rrset_type,
-            rrset_name,
+            f'Delete rrsets. Zone id: {zone_id}, rrset id: {rrset_id}'
         )
-        zone_id = self._get_zone_id_by_name(zone_name)
-        rrsets = self._zone_rrsets.get(zone_name)
-        fqdn = f'{rrset_name}.{zone_name}' if rrset_name else zone_name
-        delete_count, skip_count = 0, 0
-        for rrset in rrsets:
-            if rrset['type'] == rrset_type and rrset['name'] == fqdn:
-                try:
-                    self._client.delete_rrset(zone_id, rrset["uuid"])
-                    delete_count += 1
-                except HTTPError:
-                    skip_count += 1
-                    self.log.warning(f'Failed to delete rrset {rrset["uuid"]}')
-        self.log.debug(
-            f'Deleted {delete_count} rrsets. Skipped {skip_count} rrsets'
-        )
+        try:
+            self._client.delete_rrset(zone_id, rrset_id)
+        except HTTPError:
+            self.log.warning(f'Failed to delete rrset {rrset_id}')

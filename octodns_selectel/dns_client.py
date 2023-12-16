@@ -43,23 +43,25 @@ class DNSClient:
     def _request(self, method, path, params=None, data=None):
         url = f'{self.API_URL}{path}'
         resp = self._sess.request(method, url, params, json=data)
+        match resp.status_code:
+            case 400:
+                raise ApiException(
+                    f'Bad request. Description: {resp.json()["description"]}'
+                )
+            case 401:
+                raise ApiException(
+                    'Authorization failed. Invalid or empty token.'
+                )
+            case 404:
+                raise ApiException('Resource not found.')
+            case 409:
+                raise ApiException('Resource already created.')
+            case _ if resp.status_code >= 500:
+                raise ApiException('Internal server error.')
         try:
-            match resp.status_code:
-                case 400:
-                    raise ApiException(
-                        f'Bad request. Description: {resp.json()["description"]}'
-                    )
-                case 401:
-                    raise ApiException(
-                        'Authorization failed. Invalid or empty token.'
-                    )
-                case 404:
-                    raise ApiException('Resource not found.')
-                case 409:
-                    raise ApiException('Resource already created.')
-                case _ if resp.status_code >= 500:
-                    raise ApiException('Internal server error.')
-            return resp.json
+            return resp.json()
+        except ValueError:
+            return {}
         except Exception as e:
             raise SelectelException(e)
 
@@ -68,10 +70,11 @@ class DNSClient:
             "GET", path, dict(limit=self._PAGINATION_LIMIT, offset=offset)
         )
         next_offset = resp["next_offset"]
-        records += resp["result"]
         if next_offset == 0:
-            return records
-        return self._request_all_entities(path, records, next_offset)
+            return records + resp["result"]
+        return self._request_all_entities(
+            path, records + resp["result"], next_offset
+        )
 
     def list_zones(self):
         path = self._zone_path()
