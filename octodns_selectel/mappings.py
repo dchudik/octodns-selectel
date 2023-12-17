@@ -11,14 +11,14 @@ def to_selectel_rrset(record):
     content_srv_tmpl = Template("$priority $weight $port $target")
     content_sshfp_tmpl = Template("$algorithm $fingerprint_type $fingerprint")
     match record._type:
-        case _ if "A" or "AAAA" or "NS":
+        case "A" | "AAAA" | "NS":
             rrset_records = list(
                 map(
                     lambda value: {'content': value, 'disabled': False},
                     record.values,
                 )
             )
-        case _ if "CNAME" or "ALIAS":
+        case "CNAME" | "ALIAS":
             rrset_records = [{'content': record.value, 'disabled': False}]
         # TODO: fix error: parsed as \'"foo2"\' got 422
         # {'error': 'bad_request', 'description': 'Not in expected format (parsed as \'"foo2"\')'}
@@ -84,9 +84,9 @@ def to_octodns_record(rrset):
     record = dict(type=rrset_type, ttl=rrset["ttl"])
     record_values = []
     match rrset_type:
-        case _ if "A" or "AAAA" or "NS" or "TXT":
+        case "A" | "AAAA" | "NS" | "TXT":
             record_values = [r['content'] for r in rrset["records"]]
-        case _ if "CNAME" or "ALIAS":
+        case "CNAME" | "ALIAS":
             record_values = require_root_domain(rrset["records"][0]["content"])
         case "NS":
             record_values = [
