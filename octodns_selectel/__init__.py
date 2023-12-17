@@ -54,7 +54,6 @@ class SelectelProvider(BaseProvider):
         if not self._is_zone_already_created(zone_name):
             self.create_zone(zone_name)
         zone_id = self._get_zone_id_by_name(zone_name)
-
         for change in changes:
             action = change.__class__.__name__.lower()
             match action:
