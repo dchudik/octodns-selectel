@@ -13,21 +13,15 @@ def to_selectel_rrset(record):
     match record._type:
         case "A" | "AAAA" | "NS":
             rrset_records = list(
-                map(
-                    lambda value: {'content': value, 'disabled': False},
-                    record.values,
-                )
+                map(lambda value: {'content': value}, record.values)
             )
         case "CNAME" | "ALIAS":
-            rrset_records = [{'content': record.value, 'disabled': False}]
+            rrset_records = [{'content': record.value}]
         # TODO: fix error: parsed as \'"foo2"\' got 422
         # {'error': 'bad_request', 'description': 'Not in expected format (parsed as \'"foo2"\')'}
         case "TXT":
             rrset_records = list(
-                map(
-                    lambda value: {'content': f'"{value}"', 'disabled': False},
-                    record.values,
-                )
+                map(lambda value: {'content': f'"{value}"'}, record.values)
             )
             print("Records: %s" % rrset_records)
         case "MX":
@@ -36,8 +30,7 @@ def to_selectel_rrset(record):
                     lambda value: {
                         'content': content_mx_tmpl.substitute(
                             preference=value.preference, exchange=value.exchange
-                        ),
-                        'disabled': False,
+                        )
                     },
                     record.values,
                 )
@@ -51,8 +44,7 @@ def to_selectel_rrset(record):
                             weight=value.weight,
                             port=value.port,
                             target=value.target,
-                        ),
-                        'disabled': False,
+                        )
                     },
                     record.values,
                 )
@@ -65,8 +57,7 @@ def to_selectel_rrset(record):
                             algorithm=value.algorithm,
                             fingerprint_type=value.fingerprint_type,
                             fingerprint=value.fingerprint,
-                        ),
-                        'disabled': False,
+                        )
                     },
                     record.values,
                 )
