@@ -8,7 +8,7 @@ class TestSelectelDNSClient(TestCase):
     rrset_uuid = "f651a6dh-60ca-4b53-800e-4b7fc37d81f2"
 
     def test_zone_path(self):
-        self.assertEqual(DNSClient._zone_path(), "/zones")
+        self.assertEqual(DNSClient._zone_path, "/zones")
 
     def test_zone_path_specific(self):
         self.assertEqual(
