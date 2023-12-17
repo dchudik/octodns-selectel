@@ -1,7 +1,7 @@
 from string import Template
 
 from .exceptions import SelectelException
-from .helpers import require_root_domain
+from .helpers import _ensure_trailing_dot
 
 
 def to_selectel_rrset(record):
@@ -78,10 +78,10 @@ def to_octodns_record(rrset):
         case "A" | "AAAA" | "NS" | "TXT":
             record_values = [r['content'] for r in rrset["records"]]
         case "CNAME" | "ALIAS":
-            record_values = require_root_domain(rrset["records"][0]["content"])
+            record_values = _ensure_trailing_dot(rrset["records"][0]["content"])
         case "NS":
             record_values = [
-                require_root_domain(r["content"]) for r in rrset["records"]
+                _ensure_trailing_dot(r["content"]) for r in rrset["records"]
             ]
         # TODO: fix unwrap TXT
         # case "TXT":
@@ -95,7 +95,7 @@ def to_octodns_record(rrset):
                     'priority': priority,
                     'weight': weight,
                     'port': port,
-                    'target': require_root_domain(target),
+                    'target': _ensure_trailing_dot(target),
                 }
         case "SSHFP":
             for record in rrset["records"]:

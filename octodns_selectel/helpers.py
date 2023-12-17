@@ -1,4 +1,4 @@
-def require_root_domain(fqdn):
+def _ensure_trailing_dot(fqdn):
     if fqdn.endswith('.'):
         return fqdn
 

@@ -9,7 +9,7 @@ from octodns.record import Record, Update
 
 from .dns_client import DNSClient
 from .exceptions import ApiException, SelectelException
-from .helpers import require_root_domain
+from .helpers import _ensure_trailing_dot
 from .mappings import to_octodns_record, to_selectel_rrset
 
 # TODO: remove __VERSION__ with the next major version release
@@ -132,7 +132,7 @@ class SelectelProvider(BaseProvider):
 
     def create_zone(self, name):
         self.log.debug('Create zone: %s', name)
-        zone = self._client.create_zone(require_root_domain(name))
+        zone = self._client.create_zone(_ensure_trailing_dot(name))
         self._zones[zone["name"]] = zone
         return zone
 
