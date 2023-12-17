@@ -9,7 +9,7 @@ class DNSClient:
     API_URL = 'https://api.selectel.ru/domains/v2'
     _PAGINATION_LIMIT = 50
 
-    __zone_path = "/zones"
+    _zone_path = "/zones"
     __zone_path_specific = "/zones/{}"
     __rrsets_path = "/zones/{}/rrset"
     __rrsets_path_specific = "/zones/{}/rrset/{}"
@@ -23,10 +23,6 @@ class DNSClient:
                 'User-Agent': f'octodns/{octodns_version} octodns-selectel/{library_version}',
             }
         )
-
-    @classmethod
-    def _zone_path(cls):
-        return cls.__zone_path
 
     @classmethod
     def _zone_path_specific(cls, zone_uuid):
@@ -46,7 +42,7 @@ class DNSClient:
         match resp.status_code:
             case 400:
                 raise ApiException(
-                    f'Bad request. Description: {resp.json()["description"]}'
+                    f'Bad request. Description: {resp.json().get("description", "Invalid payload")}'
                 )
             case 401:
                 raise ApiException(
@@ -55,12 +51,11 @@ class DNSClient:
             case 404:
                 raise ApiException('Resource not found.')
             case 409:
-                raise ApiException('Resource already created.')
+                raise ApiException(
+                    f'Conflict: {resp.json().get("error", "Invalid payload")}'
+                )
             case _ if resp.status_code >= 500:
                 raise ApiException('Internal server error.')
-            case _:
-                print(resp.json())
-                resp.raise_for_status()
         try:
             return resp.json()
         except ValueError:
@@ -68,27 +63,21 @@ class DNSClient:
         except Exception as e:
             raise SelectelException(e)
 
-    def _request_all_entities(self, path, records=[], offset=0):
+    def _request_all_entities(self, path, offset=0) -> list[int]:
+        items = []
         resp = self._request(
             "GET", path, dict(limit=self._PAGINATION_LIMIT, offset=offset)
         )
-        next_offset = resp["next_offset"]
-        if next_offset == 0:
-            return records + resp["result"]
-        return self._request_all_entities(
-            path, records + resp["result"], next_offset
-        )
+        items.extend(resp["result"])
+        if next_offset := resp["next_offset"]:
+            items.extend(self._request_all_entities(path, offset=next_offset))
+        return items
 
     def list_zones(self):
-        path = self._zone_path()
-        zones = self._request_all_entities(path)
-        return zones
+        return self._request_all_entities(self._zone_path)
 
     def create_zone(self, name):
-        path = self._zone_path()
-        data = dict(name=name)
-        resp = self._request('POST', path, data=data)
-        return resp
+        return self._request('POST', self._zone_path, data=dict(name=name))
 
     def list_rrsets(self, zone_uuid):
         path = self._rrset_path(zone_uuid)

@@ -4,12 +4,11 @@
 
 from logging import getLogger
 
-from requests.exceptions import HTTPError
-
 from octodns.provider.base import BaseProvider
 from octodns.record import Record, Update
 
 from .dns_client import DNSClient
+from .exceptions import ApiException, SelectelException
 from .helpers import require_root_domain
 from .mappings import to_octodns_record, to_selectel_rrset
 
@@ -52,14 +51,13 @@ class SelectelProvider(BaseProvider):
             '_apply: zone=%s, len(changes)=%d', desired.name, len(changes)
         )
         zone_name = desired.name
-        zone_id = ""
-        if self._is_zone_already_created(zone_name):
-            zone_id = self._get_zone_id_by_name(zone_name)
-        else:
-            zone_id = self.create_zone(zone_name)['uuid']
+        if not self._is_zone_already_created(zone_name):
+            self.create_zone(zone_name)
+        zone_id = self._get_zone_id_by_name(zone_name)
+
         for change in changes:
-            action = change.__class__.__name__
-            match action.lower():
+            action = change.__class__.__name__.lower()
+            match action:
                 case 'create':
                     self._apply_create(zone_id, change)
                 case 'update':
@@ -67,25 +65,19 @@ class SelectelProvider(BaseProvider):
                 case 'delete':
                     self._apply_delete(zone_id, change)
                 case _:
-                    raise SelectelProvider(
-                        f'Method {action.lower()} not implemented'
-                    )
+                    raise SelectelException(f'Unexpected change type: {action}')
 
     def _is_zone_already_created(self, zone_name):
         return zone_name in self._zones.keys()
 
     def _get_rrset_id(self, zone_name, rrset_type, rrset_name):
-        rrsets = self._zone_rrsets.get(zone_name)
-        if not rrsets:
-            return ""
-        rrset = next(
+        return next(
             filter(
                 lambda rrset: rrset["type"] == rrset_type
                 and rrset["name"] == rrset_name,
-                rrsets,
+                self._zone_rrsets[zone_name],
             )
-        )
-        return rrset["uuid"] if rrset else ""
+        )["uuid"]
 
     def _apply_create(self, zone_id, change):
         new_record = change.new
@@ -134,7 +126,9 @@ class SelectelProvider(BaseProvider):
 
     def _get_zone_id_by_name(self, zone_name):
         zone = self._zones.get(zone_name, False)
-        return zone["uuid"] if zone else ""
+        if not zone:
+            raise SelectelException(f"Zone: {zone_name} not found")
+        return zone["uuid"]
 
     def create_zone(self, name):
         self.log.debug('Create zone: %s', name)
@@ -149,10 +143,8 @@ class SelectelProvider(BaseProvider):
     def list_rrsets(self, zone):
         self.log.debug('View rrsets. Zone: %s', zone.name)
         zone_id = self._get_zone_id_by_name(zone.name)
-        zone_rrsets = []
-        if zone_id:
-            zone_rrsets = self._client.list_rrsets(zone_id)
-            self._zone_rrsets[zone.name] = zone_rrsets
+        zone_rrsets = self._client.list_rrsets(zone_id)
+        self._zone_rrsets[zone.name] = zone_rrsets
         return zone_rrsets
 
     def create_rrset(self, zone_id, data):
@@ -165,5 +157,5 @@ class SelectelProvider(BaseProvider):
         )
         try:
             self._client.delete_rrset(zone_id, rrset_id)
-        except HTTPError:
+        except ApiException:
             self.log.warning(f'Failed to delete rrset {rrset_id}')
