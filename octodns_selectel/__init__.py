@@ -9,7 +9,6 @@ from octodns.record import Record, Update
 
 from .dns_client import DNSClient
 from .exceptions import ApiException, SelectelException
-from .helpers import _ensure_trailing_dot
 from .mappings import to_octodns_record, to_selectel_rrset
 
 # TODO: remove __VERSION__ with the next major version release
@@ -31,7 +30,7 @@ class SelectelProvider(BaseProvider):
         self._zones = self.group_existing_zones_by_name()
         self._zone_rrsets = {}
 
-    # TODO: check when using this function
+    # TODO: is need?
     def _include_change(self, change):
         if isinstance(change, Update):
             existing = change.existing.data
@@ -124,14 +123,11 @@ class SelectelProvider(BaseProvider):
         self.log.info('populate: found %s records', len(zone.records) - before)
 
     def _get_zone_id_by_name(self, zone_name):
-        zone = self._zones.get(zone_name, False)
-        if not zone:
-            raise SelectelException(f"Zone: {zone_name} not found")
-        return zone["uuid"]
+        return self._zones.get(zone_name, False)["uuid"]
 
     def create_zone(self, name):
         self.log.debug('Create zone: %s', name)
-        zone = self._client.create_zone(_ensure_trailing_dot(name))
+        zone = self._client.create_zone(name)
         self._zones[zone["name"]] = zone
         return zone
 

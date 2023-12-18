@@ -1,7 +1,6 @@
 from string import Template
 
 from .exceptions import SelectelException
-from .helpers import _ensure_trailing_dot
 
 
 def to_selectel_rrset(record):
@@ -21,7 +20,7 @@ def to_selectel_rrset(record):
         # {'error': 'bad_request', 'description': 'Not in expected format (parsed as \'"foo2"\')'}
         case "TXT":
             rrset_records = list(
-                map(lambda value: {'content': f'"{value}"'}, record.values)
+                map(lambda value: {'content': f'{value}'}, record.values)
             )
             print("Records: %s" % rrset_records)
         case "MX":
@@ -78,11 +77,9 @@ def to_octodns_record(rrset):
         case "A" | "AAAA" | "NS" | "TXT":
             record_values = [r['content'] for r in rrset["records"]]
         case "CNAME" | "ALIAS":
-            record_values = _ensure_trailing_dot(rrset["records"][0]["content"])
+            record_values = rrset["records"][0]["content"]
         case "NS":
-            record_values = [
-                _ensure_trailing_dot(r["content"]) for r in rrset["records"]
-            ]
+            record_values = [r["content"] for r in rrset["records"]]
         # TODO: fix unwrap TXT
         # case "TXT":
         #     print([r['content'] for r in rrset["records"]])
@@ -95,7 +92,7 @@ def to_octodns_record(rrset):
                     'priority': priority,
                     'weight': weight,
                     'port': port,
-                    'target': _ensure_trailing_dot(target),
+                    'target': target,
                 }
         case "SSHFP":
             for record in rrset["records"]:

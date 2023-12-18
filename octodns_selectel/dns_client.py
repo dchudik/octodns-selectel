@@ -41,7 +41,7 @@ class DNSClient:
         resp = self._sess.request(method, url, params, json=data)
         try:
             resp_json = resp.json()
-        except Exception:
+        except ValueError:
             resp_json = {}
         match resp.status_code:
             case 200 | 201 | 204:
@@ -81,8 +81,7 @@ class DNSClient:
 
     def list_rrsets(self, zone_uuid):
         path = self._rrset_path(zone_uuid)
-        zone_rrsets = self._request_all_entities(path)
-        return zone_rrsets
+        return self._request_all_entities(path)
 
     def create_rrset(self, zone_uuid, data):
         path = self._rrset_path(zone_uuid)
@@ -90,5 +89,4 @@ class DNSClient:
 
     def delete_rrset(self, zone_uuid, rrset_uuid):
         path = self._rrset_path_specific(zone_uuid, rrset_uuid)
-        self._request('DELETE', path)
-        return {}
+        return self._request('DELETE', path)
