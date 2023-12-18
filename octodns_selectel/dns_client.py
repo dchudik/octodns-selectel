@@ -2,7 +2,7 @@ from requests import Session
 
 from octodns import __VERSION__ as octodns_version
 
-from .exceptions import ApiException, SelectelException
+from .exceptions import ApiException
 
 
 class DNSClient:
@@ -39,10 +39,16 @@ class DNSClient:
     def _request(self, method, path, params=None, data=None):
         url = f'{self.API_URL}{path}'
         resp = self._sess.request(method, url, params, json=data)
+        try:
+            resp_json = resp.json()
+        except Exception:
+            resp_json = {}
         match resp.status_code:
+            case 200 | 201 | 204:
+                return resp_json
             case 400:
                 raise ApiException(
-                    f'Bad request. Description: {resp.json().get("description", "Invalid payload")}'
+                    f'Bad request. Description: {resp_json.get("description", "Invalid payload")}.'
                 )
             case 401:
                 raise ApiException(
@@ -52,16 +58,10 @@ class DNSClient:
                 raise ApiException('Resource not found.')
             case 409:
                 raise ApiException(
-                    f'Conflict: {resp.json().get("error", "Invalid payload")}'
+                    f'Conflict: {resp_json.get("error", "resource maybe already created")}.'
                 )
-            case _ if resp.status_code >= 500:
+            case _:
                 raise ApiException('Internal server error.')
-        try:
-            return resp.json()
-        except ValueError:
-            return {}
-        except Exception as e:
-            raise SelectelException(e)
 
     def _request_all_entities(self, path, offset=0) -> list[int]:
         items = []
