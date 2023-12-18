@@ -46,7 +46,7 @@ class DNSClient:
         match resp.status_code:
             case 200 | 201 | 204:
                 return resp_json
-            case 400:
+            case 400 | 422:
                 raise ApiException(
                     f'Bad request. Description: {resp_json.get("description", "Invalid payload")}.'
                 )
