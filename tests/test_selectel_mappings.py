@@ -173,7 +173,7 @@ class TestSelectelMappings(TestCase):
             list(map(lambda value: value.rdata_text, self._srv_record.values)),
             list(
                 map(
-                    lambda value: f"{value['priority']} {value['weight']} {value['port']} {value['target']}",
+                    lambda v: f"{v['priority']} {v['weight']} {v['port']} {v['target']}",
                     record["values"],
                 )
             ),
