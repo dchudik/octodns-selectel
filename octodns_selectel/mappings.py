@@ -72,10 +72,12 @@ def to_octodns_record(rrset):
     rrset_type = rrset["type"]
     octodns_record = dict(type=rrset_type, ttl=rrset["ttl"])
     record_values = []
+    key_for_record_values = "values"
     match rrset_type:
         case "A" | "AAAA" | "NS" | "TXT":
             record_values = [r['content'] for r in rrset["records"]]
         case "CNAME" | "ALIAS":
+            key_for_record_values = "value"
             record_values = rrset["records"][0]["content"]
         # TODO: fix unwrap TXT
         # case "TXT":
@@ -115,5 +117,5 @@ def to_octodns_record(rrset):
             raise SelectelException(
                 f'DNS Record with type: {rrset_type} not supported'
             )
-    octodns_record["values"] = record_values
+    octodns_record[key_for_record_values] = record_values
     return octodns_record
