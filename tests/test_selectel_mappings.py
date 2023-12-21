@@ -1,7 +1,15 @@
 import ipaddress
 from unittest import TestCase
 
-from octodns.record import AaaaRecord, ARecord, MxRecord, SrvRecord
+from octodns.record import (
+    AaaaRecord,
+    AliasRecord,
+    ARecord,
+    CnameRecord,
+    MxRecord,
+    SrvRecord,
+    SshfpRecord,
+)
 from octodns.zone import Zone
 
 from octodns_selectel.exceptions import SelectelException
@@ -85,8 +93,12 @@ class TestSelectelMappings(TestCase):
             "Values from record must equals values in expected rrset",
         )
 
+    _invalid_type_record = ARecord(
+        zone, "bad", dict(type="INCORRECT", ttl=3600, values=_a_values)
+    )
+    _invalid_type_record._type = "INCORRECT"
     _invalid_type_rrset = {
-        "uuid": "ecc390cf-3d6f-48fb-8ef8-a982f6c2b3fc",
+        "uuid": "ecc390cf-3d6f_invalid_type_rrset-48fb-8ef8-a982f6c2b3fc",
         "name": f'bad.{zone.name}',
         "ttl": 3600,
         "type": "INCORRECT",
@@ -95,6 +107,15 @@ class TestSelectelMappings(TestCase):
     def test_to_octodns_record_type_invalid(self):
         with self.assertRaises(SelectelException) as selectel_exception:
             _ = to_octodns_record(self._invalid_type_rrset)
+            self.assertEquals(
+                selectel_exception.exception,
+                'DNS Record with type: INCORRECT not supported',
+            )
+
+    def test_to_selectel_rrset_type_invalid(self):
+        with self.assertRaises(SelectelException) as selectel_exception:
+            _ = to_selectel_rrset(self._invalid_type_record)
+            print(self._invalid_type_record._type)
             self.assertEquals(
                 selectel_exception.exception,
                 'DNS Record with type: INCORRECT not supported',
@@ -189,5 +210,139 @@ class TestSelectelMappings(TestCase):
         self.assertEqual(
             rrset,
             self._srv_rrset,
+            "Values from record must equals values in expected rrset",
+        )
+
+    _sshfp_values = [
+        dict(
+            algorithm=4,
+            fingerprint_type=2,
+            fingerprint="123456789abcdef67890123456789abcdef67890123456789abcdef123456789",
+        )
+    ]
+    _sshfp_record = SshfpRecord(
+        zone, "sshfp", dict(type="SSHFP", ttl=3600, values=_sshfp_values)
+    )
+    _sshfp_rrset = {
+        "name": f"sshfp.{zone.name}",
+        "ttl": 3600,
+        "type": "SSHFP",
+        "records": [
+            {
+                "content": "4 2 123456789abcdef67890123456789abcdef67890123456789abcdef123456789"
+            }
+        ],
+    }
+
+    def test_to_octodns_record_sshfp(self):
+        record = to_octodns_record(self._sshfp_rrset)
+        self.assertEqual(
+            self._sshfp_record._type, record["type"], "Types must equals"
+        )
+        self.assertEqual(
+            self._sshfp_record.ttl, record["ttl"], "TTL must equals"
+        )
+        self.assertListEqual(
+            list(
+                map(lambda value: value.rdata_text, self._sshfp_record.values)
+            ),
+            list(
+                map(
+                    lambda v: f"{v['algorithm']} {v['fingerprint_type']} {v['fingerprint']}",
+                    record["values"],
+                )
+            ),
+            "Values from rrset must equals values in record",
+        )
+
+    def test_to_selectel_rrset_sshfp(self):
+        rrset = to_selectel_rrset(self._sshfp_record)
+        self.assertEqual(
+            self._sshfp_record._type, rrset["type"], "Types must equals"
+        )
+        self.assertEqual(
+            self._sshfp_record.ttl, rrset["ttl"], "TTL must equals"
+        )
+        self.assertEqual(
+            rrset,
+            self._sshfp_rrset,
+            "Values from record must equals values in expected rrset",
+        )
+
+    _cname_value = "proxydomain.ru."
+    _cname_record = CnameRecord(
+        zone, "cname", dict(type="CNAME", ttl=3600, value=_cname_value)
+    )
+    _cname_rrset = {
+        "name": f"cname.{zone.name}",
+        "ttl": 3600,
+        "type": "CNAME",
+        "records": [{"content": _cname_value}],
+    }
+
+    def test_to_octodns_record_cname(self):
+        record = to_octodns_record(self._cname_rrset)
+        self.assertEqual(
+            self._cname_record._type, record["type"], "Types must equals"
+        )
+        self.assertEqual(
+            self._cname_record.ttl, record["ttl"], "TTL must equals"
+        )
+        self.assertEqual(
+            self._cname_record.value,
+            record["values"],
+            "Values from rrset must equals values in record",
+        )
+
+    def test_to_selectel_rrset_cname(self):
+        rrset = to_selectel_rrset(self._cname_record)
+        self.assertEqual(
+            self._cname_record._type, rrset["type"], "Types must equals"
+        )
+        self.assertEqual(
+            self._cname_record.ttl, rrset["ttl"], "TTL must equals"
+        )
+        self.assertEqual(
+            rrset,
+            self._cname_rrset,
+            "Values from record must equals values in expected rrset",
+        )
+
+    _alias_value = "proxydomain.ru."
+    _alias_record = AliasRecord(
+        zone, "alias", dict(type="ALIAS", ttl=3600, value=_alias_value)
+    )
+    _alias_rrset = {
+        "name": f"alias.{zone.name}",
+        "ttl": 3600,
+        "type": "ALIAS",
+        "records": [{"content": _alias_value}],
+    }
+
+    def test_to_octodns_record_alias(self):
+        record = to_octodns_record(self._alias_rrset)
+        self.assertEqual(
+            self._alias_record._type, record["type"], "Types must equals"
+        )
+        self.assertEqual(
+            self._alias_record.ttl, record["ttl"], "TTL must equals"
+        )
+        self.assertEqual(
+            self._alias_record.value,
+            record["values"],
+            "Values from rrset must equals values in record",
+        )
+
+    def test_to_selectel_rrset_alias(self):
+        rrset = to_selectel_rrset(self._alias_record)
+        self.assertEqual(
+            self._alias_record._type, rrset["type"], "Types must equals"
+        )
+        self.assertEqual(
+            self._alias_record.ttl, rrset["ttl"], "TTL must equals"
+        )
+        self.assertEqual(
+            rrset,
+            self._alias_rrset,
             "Values from record must equals values in expected rrset",
         )

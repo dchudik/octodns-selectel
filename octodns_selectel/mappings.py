@@ -10,7 +10,7 @@ def to_selectel_rrset(record):
     content_srv_tmpl = Template("$priority $weight $port $target")
     content_sshfp_tmpl = Template("$algorithm $fingerprint_type $fingerprint")
     match record._type:
-        case "A" | "AAAA" | "NS":
+        case "A" | "AAAA" | "NS" | "TXT":
             rrset_records = list(
                 map(lambda value: {'content': value}, record.values)
             )
@@ -18,11 +18,10 @@ def to_selectel_rrset(record):
             rrset_records = [{'content': record.value}]
         # TODO: fix error: parsed as \'"foo2"\' got 422
         # {'error': 'bad_request', 'description': 'Not in expected format (parsed as \'"foo2"\')'}
-        case "TXT":
-            rrset_records = list(
-                map(lambda value: {'content': f'{value}'}, record.values)
-            )
-            print("Records: %s" % rrset_records)
+        # case "TXT":
+        #     rrset_records = list(
+        #         map(lambda value: {'content': f'{value}'}, record.values)
+        #     )
         case "MX":
             rrset_records = list(
                 map(
@@ -78,8 +77,6 @@ def to_octodns_record(rrset):
             record_values = [r['content'] for r in rrset["records"]]
         case "CNAME" | "ALIAS":
             record_values = rrset["records"][0]["content"]
-        case "NS":
-            record_values = [r["content"] for r in rrset["records"]]
         # TODO: fix unwrap TXT
         # case "TXT":
         #     print([r['content'] for r in rrset["records"]])
