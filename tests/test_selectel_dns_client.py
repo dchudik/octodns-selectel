@@ -204,16 +204,14 @@ class TestSelectelDNSClient(TestCase):
     @requests_mock.Mocker()
     def test_request_all_entities_with_offset(self, fake_http):
         fake_http.get(
-            f'{self.API_URL}/zones/{self.zone_uuid}/rrset',
+            f'{self.API_URL}/zones/{self.zone_uuid}/rrset?limit={self._PAGINATION_LIMIT}',
             headers={"X-Auth-Token": self.openstack_token},
-            params=dict(limit=self._PAGINATION_LIMIT, offset=2),
             status_code=200,
             json=self._response_list_rrset_with_offset,
         )
         fake_http.get(
-            f'{self.API_URL}/zones/{self.zone_uuid}/rrset',
+            f'{self.API_URL}/zones/{self.zone_uuid}/rrset?limit={self._PAGINATION_LIMIT}&offset=2',
             headers={"X-Auth-Token": self.openstack_token},
-            params=dict(limit=self._PAGINATION_LIMIT, offset=0),
             status_code=200,
             json=self._response_list_rrset_without_offset,
         )
@@ -221,7 +219,8 @@ class TestSelectelDNSClient(TestCase):
             DNSClient._rrset_path(self.zone_uuid)
         )
         result_list = []
-        result_list.extend(self._rrsets, self._rrsets)
+        result_list.extend(self._rrsets)
+        result_list.extend(self._rrsets)
         self.assertEqual(result_list, all_entities)
 
     @requests_mock.Mocker()
