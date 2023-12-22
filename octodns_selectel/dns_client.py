@@ -55,7 +55,10 @@ class DNSClient:
                     'Authorization failed. Invalid or empty token.'
                 )
             case 404:
-                raise ApiException('Resource not found.')
+                raise ApiException(
+                    'Resource not found: '
+                    f'{resp_json.get("error", "invalid path")}.'
+                )
             case 409:
                 raise ApiException(
                     f'Conflict: {resp_json.get("error", "resource maybe already created")}.'
