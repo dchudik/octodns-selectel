@@ -14,7 +14,7 @@ from octodns.record import (
 from octodns.zone import Zone
 
 from octodns_selectel.exceptions import SelectelException
-from octodns_selectel.mappings import to_octodns_record, to_selectel_rrset
+from octodns_selectel.mappings import to_octodns_record_data, to_selectel_rrset
 
 PairTest = collections.namedtuple("PairTest", ["record", "rrset"])
 
@@ -44,7 +44,7 @@ class TestSelectelMappings(TestCase):
                     "TTLs must equals",
                 )
 
-                record_data_from_rrset = to_octodns_record(tc.rrset)
+                record_data_from_rrset = to_octodns_record_data(tc.rrset)
                 self.assertEqual(
                     record_data_from_rrset.get("type"),
                     tc.record._type,
@@ -64,7 +64,7 @@ class TestSelectelMappings(TestCase):
                     rrset_from_record.get("records"), tc.rrset["records"]
                 )
 
-                record_data_from_rrset = to_octodns_record(tc.rrset)
+                record_data_from_rrset = to_octodns_record_data(tc.rrset)
                 self.assertListEqual(
                     record_data_from_rrset.get("values"), tc.record.values
                 )
@@ -83,7 +83,7 @@ class TestSelectelMappings(TestCase):
                     list(map(lambda value: value.rdata_text, tc.record.values)),
                 )
 
-                record_data_from_rrset = to_octodns_record(tc.rrset)
+                record_data_from_rrset = to_octodns_record_data(tc.rrset)
                 self.assertListEqual(
                     list(
                         map(
@@ -113,7 +113,7 @@ class TestSelectelMappings(TestCase):
                     list(map(lambda value: value.rdata_text, tc.record.values)),
                 )
 
-                record_data_from_rrset = to_octodns_record(tc.rrset)
+                record_data_from_rrset = to_octodns_record_data(tc.rrset)
                 self.assertListEqual(
                     list(
                         map(
@@ -141,7 +141,7 @@ class TestSelectelMappings(TestCase):
                     list(map(lambda value: value.rdata_text, tc.record.values)),
                 )
 
-                record_data_from_rrset = to_octodns_record(tc.rrset)
+                record_data_from_rrset = to_octodns_record_data(tc.rrset)
                 self.assertListEqual(
                     sorted(
                         list(
@@ -164,7 +164,7 @@ class TestSelectelMappings(TestCase):
                     rrset_from_record.get("records"), tc.rrset["records"]
                 )
 
-                record_data_from_rrset = to_octodns_record(tc.rrset)
+                record_data_from_rrset = to_octodns_record_data(tc.rrset)
                 self.assertEqual(
                     record_data_from_rrset.get("value"), tc.record.value
                 )
@@ -509,7 +509,7 @@ class TestSelectelMappings(TestCase):
         )
 
         with self.assertRaises(SelectelException) as selectel_exception:
-            _ = to_octodns_record(invalid_type_rrset)
+            _ = to_octodns_record_data(invalid_type_rrset)
             self.assertEquals(
                 selectel_exception.exception,
                 'DNS Record with type: INCORRECT not supported',

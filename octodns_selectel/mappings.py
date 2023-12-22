@@ -68,7 +68,7 @@ def to_selectel_rrset(record):
     return rrset
 
 
-def to_octodns_record(rrset):
+def to_octodns_record_data(rrset):
     rrset_type = rrset["type"]
     octodns_record = dict(type=rrset_type, ttl=rrset["ttl"])
     record_values = []
