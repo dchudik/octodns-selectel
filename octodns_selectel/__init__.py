@@ -112,7 +112,6 @@ class SelectelProvider(BaseProvider):
             if rrset_type in self.SUPPORTS:
                 record_data = to_octodns_record_data(rrset)
                 rrset_hostname = zone.hostname_from_fqdn(rrset['name'])
-                print("New: %s" % record_data)
                 record = Record.new(
                     zone,
                     rrset_hostname,
