@@ -1,5 +1,4 @@
 import collections
-import ipaddress
 from unittest import TestCase
 
 from octodns.record import (
@@ -212,12 +211,8 @@ class TestSelectelMappings(TestCase):
 
     def test_mapping_record_aaaa(self):
         ipv6_list = [
-            str(
-                ipaddress.IPv6Address("4ad4:a6c4:f856:08be:5a5f:7f16:cc3a:fab9")
-            ),
-            str(
-                ipaddress.IPv6Address("da78:f69b:8e5a:6221:d0c9:64b8:c6c0:2eab")
-            ),
+            "4ad4:a6c4:f856:18be:5a5f:7f16:cc3a:fab9",
+            "da78:f69b:8e5a:6221:d0c9:64b8:c6c0:2eab",
         ]
         test_pairs = (
             PairTest(
