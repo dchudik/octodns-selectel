@@ -10,6 +10,7 @@ from octodns.record import (
     MxRecord,
     SrvRecord,
     SshfpRecord,
+    TxtRecord,
 )
 from octodns.zone import Zone
 
@@ -261,6 +262,50 @@ class TestSelectelMappings(TestCase):
                     records=[
                         dict(content=ipv6_list[0]),
                         dict(content=ipv6_list[1]),
+                    ],
+                ),
+            ),
+        )
+        self._assert_mapping_common(test_pairs)
+        self._assert_mapping_values(test_pairs)
+
+    def test_mapping_record_txt(self):
+        txt_list = ["\"Buzz\"", "\"Fizz\""]
+        test_pairs = (
+            PairTest(
+                TxtRecord(
+                    self.zone, "txt", dict(ttl=self.ttl, value=txt_list[0])
+                ),
+                dict(
+                    name=f"txt.{self.zone.name}",
+                    ttl=self.ttl,
+                    type="TXT",
+                    records=[dict(content=txt_list[0])],
+                ),
+            ),
+            PairTest(
+                TxtRecord(
+                    self.zone, "txt", dict(ttl=self.ttl, values=txt_list)
+                ),
+                dict(
+                    name=f"txt.{self.zone.name}",
+                    ttl=self.ttl,
+                    type="TXT",
+                    records=[
+                        dict(content=txt_list[0]),
+                        dict(content=txt_list[1]),
+                    ],
+                ),
+            ),
+            PairTest(
+                TxtRecord(self.zone, "", dict(ttl=self.ttl, values=txt_list)),
+                dict(
+                    name=self.zone.name,
+                    ttl=self.ttl,
+                    type="TXT",
+                    records=[
+                        dict(content=txt_list[0]),
+                        dict(content=txt_list[1]),
                     ],
                 ),
             ),

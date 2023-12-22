@@ -10,18 +10,16 @@ def to_selectel_rrset(record):
     content_srv_tmpl = Template("$priority $weight $port $target")
     content_sshfp_tmpl = Template("$algorithm $fingerprint_type $fingerprint")
     match record._type:
-        case "A" | "AAAA" | "NS" | "TXT":
+        case "A" | "AAAA" | "NS":
             rrset_records = list(
                 map(lambda value: {'content': value}, record.values)
             )
         case "CNAME" | "ALIAS":
             rrset_records = [{'content': record.value}]
-        # TODO: fix error: parsed as \'"foo2"\' got 422
-        # {'error': 'bad_request', 'description': 'Not in expected format (parsed as \'"foo2"\')'}
-        # case "TXT":
-        #     rrset_records = list(
-        #         map(lambda value: {'content': f'{value}'}, record.values)
-        #     )
+        case "TXT":
+            rrset_records = [
+                dict(content=f'\"{value}\"') for value in record.values
+            ]
         case "MX":
             rrset_records = list(
                 map(
@@ -74,16 +72,15 @@ def to_octodns_record_data(rrset):
     record_values = []
     key_for_record_values = "values"
     match rrset_type:
-        case "A" | "AAAA" | "NS" | "TXT":
+        case "A" | "AAAA" | "NS":
             record_values = [r['content'] for r in rrset["records"]]
         case "CNAME" | "ALIAS":
             key_for_record_values = "value"
             record_values = rrset["records"][0]["content"]
-        # TODO: fix unwrap TXT
-        # case "TXT":
-        #     print([r['content'] for r in rrset["records"]])
-        #     print([r['content'].strip('\"') for r in rrset["records"]])
-        #     record_values = [r['content'].strip('\"') for r in rrset["records"]]
+        case "TXT":
+            record_values = [
+                r['content'].strip('"\'') for r in rrset["records"]
+            ]
         case "MX":
             for record in rrset["records"]:
                 preference, exchange = record["content"].split(" ")
