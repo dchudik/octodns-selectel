@@ -9,7 +9,7 @@ from octodns.record import Record, Update
 
 from .dns_client import DNSClient
 from .exceptions import ApiException, SelectelException
-from .mappings import to_octodns_record, to_selectel_rrset
+from .mappings import to_octodns_record_data, to_selectel_rrset
 
 # TODO: remove __VERSION__ with the next major version release
 __version__ = '0.0.4'
@@ -110,7 +110,7 @@ class SelectelProvider(BaseProvider):
         for rrset in rrsets:
             rrset_type = rrset['type']
             if rrset_type in self.SUPPORTS:
-                record_data = to_octodns_record(rrset)
+                record_data = to_octodns_record_data(rrset)
                 rrset_hostname = zone.hostname_from_fqdn(rrset['name'])
                 record = Record.new(
                     zone,

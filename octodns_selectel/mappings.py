@@ -16,13 +16,10 @@ def to_selectel_rrset(record):
             )
         case "CNAME" | "ALIAS":
             rrset_records = [{'content': record.value}]
-        # TODO: fix error: parsed as \'"foo2"\' got 422
-        # {'error': 'bad_request', 'description': 'Not in expected format (parsed as \'"foo2"\')'}
         case "TXT":
-            rrset_records = list(
-                map(lambda value: {'content': f'{value}'}, record.values)
-            )
-            print("Records: %s" % rrset_records)
+            rrset_records = [
+                dict(content=f'\"{value}\"') for value in record.values
+            ]
         case "MX":
             rrset_records = list(
                 map(
@@ -69,44 +66,53 @@ def to_selectel_rrset(record):
     return rrset
 
 
-def to_octodns_record(rrset):
+def to_octodns_record_data(rrset):
     rrset_type = rrset["type"]
-    record = dict(type=rrset_type, ttl=rrset["ttl"])
+    octodns_record = dict(type=rrset_type, ttl=rrset["ttl"])
     record_values = []
+    key_for_record_values = "values"
     match rrset_type:
-        case "A" | "AAAA" | "NS" | "TXT":
+        case "A" | "AAAA" | "NS":
             record_values = [r['content'] for r in rrset["records"]]
         case "CNAME" | "ALIAS":
+            key_for_record_values = "value"
             record_values = rrset["records"][0]["content"]
-        case "NS":
-            record_values = [r["content"] for r in rrset["records"]]
-        # TODO: fix unwrap TXT
-        # case "TXT":
-        #     print([r['content'] for r in rrset["records"]])
-        #     print([r['content'].strip('\"') for r in rrset["records"]])
-        #     record_values = [r['content'].strip('\"') for r in rrset["records"]]
+        case "TXT":
+            record_values = [
+                r['content'].strip('"\'') for r in rrset["records"]
+            ]
+        case "MX":
+            for record in rrset["records"]:
+                preference, exchange = record["content"].split(" ")
+                record_values.append(
+                    {'preference': preference, 'exchange': exchange}
+                )
         case "SRV":
             for record in rrset["records"]:
                 priority, weight, port, target = record["content"].split(" ")
-                record_values += {
-                    'priority': priority,
-                    'weight': weight,
-                    'port': port,
-                    'target': target,
-                }
+                record_values.append(
+                    {
+                        'priority': priority,
+                        'weight': weight,
+                        'port': port,
+                        'target': target,
+                    }
+                )
         case "SSHFP":
             for record in rrset["records"]:
                 algorithm, fingerprint_type, fingerprint = record[
                     "content"
                 ].split(" ")
-                record_values += {
-                    'algorithm': algorithm,
-                    'fingerprint_type': fingerprint_type,
-                    'fingerprint': fingerprint,
-                }
+                record_values.append(
+                    {
+                        'algorithm': algorithm,
+                        'fingerprint_type': fingerprint_type,
+                        'fingerprint': fingerprint,
+                    }
+                )
         case _:
             raise SelectelException(
-                f'DNS Record with type: {record._type} not supported'
+                f'DNS Record with type: {rrset_type} not supported'
             )
-    record["values"] = record_values
-    return record
+    octodns_record[key_for_record_values] = record_values
+    return octodns_record
