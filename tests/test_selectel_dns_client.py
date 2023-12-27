@@ -11,9 +11,9 @@ class TestSelectelDNSClient(TestCase):
     zone_uuid = "01073035-cc25-4956-b0c9-b3a270091c37"
     rrset_uuid = "03073035-dd25-4956-b0c9-k91270091d95"
     project_id = "763219cb96c141978e8d45da637ae75c"
-    API_URL = 'https://api.selectel.ru/domains/v2'
+    API_URL = 'https://dns-v2-api.selectel'
     library_version = "0.0.1"
-    openstack_token = "oasdjoinfhusaiuhsduhsuidahuishiuhsdiu"
+    openstack_token = "some-openstack-token"
     dns_client = DNSClient(library_version, openstack_token)
     _PAGINATION_LIMIT = 50
     _PAGINATION_OFFSET = 0
