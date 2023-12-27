@@ -11,7 +11,6 @@ class TestSelectelDNSClient(TestCase):
     zone_uuid = "01073035-cc25-4956-b0c9-b3a270091c37"
     rrset_uuid = "03073035-dd25-4956-b0c9-k91270091d95"
     project_id = "763219cb96c141978e8d45da637ae75c"
-    API_URL = 'https://api.selectel.ru/domains/v2'
     library_version = "0.0.1"
     openstack_token = "some-openstack-token"
     dns_client = DNSClient(library_version, openstack_token)
@@ -65,7 +64,7 @@ class TestSelectelDNSClient(TestCase):
             </html>
         """
         fake_http.get(
-            f'{self.API_URL}/zones',
+            f'{DNSClient.API_URL}/zones',
             status_code=401,
             headers={"X-Auth-Token": self.openstack_token},
             text=response_unauthorized_html,
@@ -87,7 +86,7 @@ class TestSelectelDNSClient(TestCase):
             ),
         )
         fake_http.post(
-            f'{self.API_URL}/zones',
+            f'{DNSClient.API_URL}/zones',
             headers={"X-Auth-Token": self.openstack_token},
             status_code=422,
             json=bad_response,
@@ -105,7 +104,7 @@ class TestSelectelDNSClient(TestCase):
             error="zone_not_found", description="invalid value"
         )
         fake_http.get(
-            f'{self.API_URL}/zones/{self.zone_uuid}',
+            f'{DNSClient.API_URL}/zones/{self.zone_uuid}',
             headers={"X-Auth-Token": self.openstack_token},
             status_code=404,
             json=bad_response_with_resource_not_found,
@@ -125,7 +124,7 @@ class TestSelectelDNSClient(TestCase):
             error="this_rrset_is_already_exists", description="invalid value"
         )
         fake_http.get(
-            f'{self.API_URL}/zones/{self.zone_uuid}',
+            f'{DNSClient.API_URL}/zones/{self.zone_uuid}',
             headers={"X-Auth-Token": self.openstack_token},
             status_code=409,
             json=bad_response_with_resource_not_found,
@@ -142,7 +141,7 @@ class TestSelectelDNSClient(TestCase):
     @requests_mock.Mocker()
     def test_request_internal_error(self, fake_http):
         fake_http.get(
-            f'{self.API_URL}/zones',
+            f'{DNSClient.API_URL}/zones',
             headers={"X-Auth-Token": self.openstack_token},
             status_code=500,
             json={},
@@ -155,7 +154,7 @@ class TestSelectelDNSClient(TestCase):
     def test_request_all_entities_without_offset(self, fake_http):
         response_without_offset = self._response_list_rrset_without_offset
         fake_http.get(
-            f'{self.API_URL}/zones/{self.zone_uuid}/rrset',
+            f'{DNSClient.API_URL}/zones/{self.zone_uuid}/rrset',
             headers={"X-Auth-Token": self.openstack_token},
             status_code=200,
             json=response_without_offset,
@@ -168,13 +167,14 @@ class TestSelectelDNSClient(TestCase):
     @requests_mock.Mocker()
     def test_request_all_entities_with_offset(self, fake_http):
         fake_http.get(
-            f'{self.API_URL}/zones/{self.zone_uuid}/rrset?limit={self._PAGINATION_LIMIT}',
+            f'{DNSClient.API_URL}/zones/{self.zone_uuid}/rrset?limit={self._PAGINATION_LIMIT}',
             headers={"X-Auth-Token": self.openstack_token},
             status_code=200,
             json=self._response_list_rrset_with_offset,
         )
         fake_http.get(
-            f'{self.API_URL}/zones/{self.zone_uuid}/rrset?limit={self._PAGINATION_LIMIT}&offset=2',
+            f'{DNSClient.API_URL}/zones/{self.zone_uuid}/'
+            f'rrset?limit={self._PAGINATION_LIMIT}&offset=2',
             headers={"X-Auth-Token": self.openstack_token},
             status_code=200,
             json=self._response_list_rrset_without_offset,
@@ -208,7 +208,7 @@ class TestSelectelDNSClient(TestCase):
             ],
         )
         fake_http.get(
-            f'{self.API_URL}/zones',
+            f'{DNSClient.API_URL}/zones',
             headers={"X-Auth-Token": self.openstack_token},
             status_code=200,
             json=response_without_offset,
@@ -231,7 +231,7 @@ class TestSelectelDNSClient(TestCase):
             last_check_status=False,
         )
         fake_http.post(
-            f'{self.API_URL}/zones',
+            f'{DNSClient.API_URL}/zones',
             headers={"X-Auth-Token": self.openstack_token},
             status_code=200,
             json=response_created_zone,
@@ -242,7 +242,7 @@ class TestSelectelDNSClient(TestCase):
     @requests_mock.Mocker()
     def test_list_rrsets_success(self, fake_http):
         fake_http.get(
-            f'{self.API_URL}/zones/{self.zone_uuid}/rrset',
+            f'{DNSClient.API_URL}/zones/{self.zone_uuid}/rrset',
             headers={"X-Auth-Token": self.openstack_token},
             status_code=200,
             json=self._response_list_rrset_without_offset,
@@ -267,7 +267,7 @@ class TestSelectelDNSClient(TestCase):
             last_check_status=False,
         )
         fake_http.post(
-            f'{self.API_URL}/zones/{self.zone_uuid}/rrset',
+            f'{DNSClient.API_URL}/zones/{self.zone_uuid}/rrset',
             headers={"X-Auth-Token": self.openstack_token},
             status_code=200,
             json=response_created_rrset,
@@ -278,7 +278,7 @@ class TestSelectelDNSClient(TestCase):
     @requests_mock.Mocker()
     def test_delete_rrset_success(self, fake_http):
         fake_http.delete(
-            f'{self.API_URL}/zones/{self.zone_uuid}/rrset/{self.rrset_uuid}',
+            f'{DNSClient.API_URL}/zones/{self.zone_uuid}/rrset/{self.rrset_uuid}',
             headers={"X-Auth-Token": self.openstack_token},
             status_code=200,
         )
