@@ -25,10 +25,6 @@ class DNSClient:
         )
 
     @classmethod
-    def _zone_path_specific(cls, zone_uuid):
-        return cls.__zone_path_specific.format(zone_uuid)
-
-    @classmethod
     def _rrset_path(cls, zone_uuid):
         return cls.__rrsets_path.format(zone_uuid)
 

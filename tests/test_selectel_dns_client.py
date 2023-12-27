@@ -70,7 +70,7 @@ class TestSelectelDNSClient(TestCase):
             text=response_unauthorized_html,
         )
         with self.assertRaises(ApiException) as api_exception:
-            self.dns_client._request("GET", DNSClient._zone_path)
+            self.dns_client.list_zones()
         self.assertEqual(
             'Authorization failed. Invalid or empty token.',
             str(api_exception.exception),
@@ -78,13 +78,7 @@ class TestSelectelDNSClient(TestCase):
 
     @requests_mock.Mocker()
     def test_request_bad_request_with_description(self, fake_http):
-        bad_response = dict(
-            error="bad_request",
-            description=(
-                "Data field in DNS should start with quote (\") "
-                "at position 0 of 'Example TXT Record'"
-            ),
-        )
+        bad_response = dict(error="bad_request", description=("field required"))
         fake_http.post(
             f'{DNSClient.API_URL}/zones',
             headers={"X-Auth-Token": self.openstack_token},
@@ -92,7 +86,7 @@ class TestSelectelDNSClient(TestCase):
             json=bad_response,
         )
         with self.assertRaises(ApiException) as api_exception:
-            self.dns_client._request("POST", DNSClient._zone_path)
+            self.dns_client.create_zone(self.zone_name)
         self.assertEqual(
             f'Bad request. Description: {bad_response.get("description")}.',
             str(api_exception.exception),
@@ -104,15 +98,13 @@ class TestSelectelDNSClient(TestCase):
             error="zone_not_found", description="invalid value"
         )
         fake_http.get(
-            f'{DNSClient.API_URL}/zones/{self.zone_uuid}',
+            f'{DNSClient.API_URL}/zones/{self.zone_uuid}/rrset',
             headers={"X-Auth-Token": self.openstack_token},
             status_code=404,
             json=bad_response_with_resource_not_found,
         )
         with self.assertRaises(ApiException) as api_exception:
-            self.dns_client._request(
-                "GET", DNSClient._zone_path_specific(self.zone_uuid)
-            )
+            self.dns_client.list_rrsets(self.zone_uuid)
         self.assertEqual(
             f'Resource not found: {bad_response_with_resource_not_found["error"]}.',
             str(api_exception.exception),
@@ -124,15 +116,13 @@ class TestSelectelDNSClient(TestCase):
             error="this_rrset_is_already_exists", description="invalid value"
         )
         fake_http.get(
-            f'{DNSClient.API_URL}/zones/{self.zone_uuid}',
+            f'{DNSClient.API_URL}/zones/{self.zone_uuid}/rrset',
             headers={"X-Auth-Token": self.openstack_token},
             status_code=409,
             json=bad_response_with_resource_not_found,
         )
         with self.assertRaises(ApiException) as api_exception:
-            self.dns_client._request(
-                "GET", DNSClient._zone_path_specific(self.zone_uuid)
-            )
+            self.dns_client.list_rrsets(self.zone_uuid)
         self.assertEqual(
             f'Conflict: {bad_response_with_resource_not_found["error"]}.',
             str(api_exception.exception),
@@ -147,7 +137,7 @@ class TestSelectelDNSClient(TestCase):
             json={},
         )
         with self.assertRaises(ApiException) as api_exception:
-            self.dns_client._request("GET", DNSClient._zone_path)
+            self.dns_client.list_zones()
         self.assertEqual('Internal server error.', str(api_exception.exception))
 
     @requests_mock.Mocker()
