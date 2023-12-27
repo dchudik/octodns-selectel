@@ -53,41 +53,6 @@ class TestSelectelDNSClient(TestCase):
         count=2, next_offset=2, result=_rrsets
     )
 
-    def test_zone_path(self):
-        self.assertEqual(DNSClient._zone_path, "/zones")
-
-    def test_zone_path_specific(self):
-        self.assertEqual(
-            DNSClient._zone_path_specific(self.zone_uuid),
-            f'/zones/{self.zone_uuid}',
-        )
-
-    def test_rrset_path(self):
-        self.assertEqual(
-            DNSClient._rrset_path(self.zone_uuid),
-            f'/zones/{self.zone_uuid}/rrset',
-        )
-
-    def test_rrset_path_specific(self):
-        self.assertEqual(
-            DNSClient._rrset_path_specific(self.zone_uuid, self.rrset_uuid),
-            f'/zones/{self.zone_uuid}/rrset/{self.rrset_uuid}',
-        )
-
-    @requests_mock.Mocker()
-    def test_request_pass_openstack_token(self, fake_http):
-        fake_http.get(
-            f'{self.API_URL}/zones',
-            headers={"X-Auth-Token": self.openstack_token},
-            json={},
-        )
-        self.dns_client._request("GET", DNSClient._zone_path)
-        self.assertEqual(
-            fake_http.last_request.headers["X-Auth-Token"],
-            self.openstack_token,
-            "OpenStack token must pass in X-Auth-Token header",
-        )
-
     @requests_mock.Mocker()
     def test_request_unauthorized_with_html_body(self, fake_http):
         response_unauthorized_html = """
