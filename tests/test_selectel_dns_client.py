@@ -11,7 +11,7 @@ class TestSelectelDNSClient(TestCase):
     zone_uuid = "01073035-cc25-4956-b0c9-b3a270091c37"
     rrset_uuid = "03073035-dd25-4956-b0c9-k91270091d95"
     project_id = "763219cb96c141978e8d45da637ae75c"
-    API_URL = 'https://dns-v2-api.selectel'
+    API_URL = 'https://api.selectel.ru/domains/v2'
     library_version = "0.0.1"
     openstack_token = "some-openstack-token"
     dns_client = DNSClient(library_version, openstack_token)
@@ -94,7 +94,6 @@ class TestSelectelDNSClient(TestCase):
         )
         with self.assertRaises(ApiException) as api_exception:
             self.dns_client._request("POST", DNSClient._zone_path)
-        print("Msg: " + str(api_exception.exception))
         self.assertEqual(
             f'Bad request. Description: {bad_response.get("description")}.',
             str(api_exception.exception),
