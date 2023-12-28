@@ -25,10 +25,6 @@ class DNSClient:
         )
 
     @classmethod
-    def _zone_path_specific(cls, zone_uuid):
-        return cls.__zone_path_specific.format(zone_uuid)
-
-    @classmethod
     def _rrset_path(cls, zone_uuid):
         return cls.__rrsets_path.format(zone_uuid)
 
@@ -55,7 +51,10 @@ class DNSClient:
                     'Authorization failed. Invalid or empty token.'
                 )
             case 404:
-                raise ApiException('Resource not found.')
+                raise ApiException(
+                    'Resource not found: '
+                    f'{resp_json.get("error", "invalid path")}.'
+                )
             case 409:
                 raise ApiException(
                     f'Conflict: {resp_json.get("error", "resource maybe already created")}.'
