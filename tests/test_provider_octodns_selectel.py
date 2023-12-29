@@ -3,14 +3,11 @@ from unittest import TestCase
 
 import requests_mock
 
-# from octodns.record import Record, Update
-from octodns.record import Record
+from octodns.record import Delete, Record, Update
 from octodns.zone import Zone
 
 from octodns_selectel import DNSClient, SelectelProvider
 from octodns_selectel.mappings import to_octodns_record_data
-
-# from requests.exceptions import HTTPError
 
 
 class TestSelectelProvider(TestCase):
@@ -27,7 +24,9 @@ class TestSelectelProvider(TestCase):
     def _a_rrset(self, uuid, hostname):
         return dict(
             uuid=uuid,
-            name=f'{hostname}.{self._zone_name}',
+            name=f'{hostname}.{self._zone_name}'
+            if hostname
+            else self._zone_name,
             type='A',
             ttl=self._ttl,
             records=[dict(content='1.2.3.4'), dict(content='5.6.7.8')],
@@ -36,7 +35,9 @@ class TestSelectelProvider(TestCase):
     def _aaaa_rrset(self, uuid, hostname):
         return dict(
             uuid=uuid,
-            name=f'{hostname}.{self._zone_name}',
+            name=f'{hostname}.{self._zone_name}'
+            if hostname
+            else self._zone_name,
             type='AAAA',
             ttl=self._ttl,
             records=[
@@ -48,7 +49,9 @@ class TestSelectelProvider(TestCase):
     def _cname_rrset(self, uuid, hostname):
         return dict(
             uuid=uuid,
-            name=f'{hostname}.{self._zone_name}',
+            name=f'{hostname}.{self._zone_name}'
+            if hostname
+            else self._zone_name,
             type='CNAME',
             ttl=self._ttl,
             records=[dict(content=self._zone_name)],
@@ -57,7 +60,9 @@ class TestSelectelProvider(TestCase):
     def _mx_rrset(self, uuid, hostname):
         return dict(
             uuid=uuid,
-            name=f'{hostname}.{self._zone_name}',
+            name=f'{hostname}.{self._zone_name}'
+            if hostname
+            else self._zone_name,
             type='MX',
             ttl=self._ttl,
             records=[dict(content=f'10 mx.{self._zone_name}')],
@@ -66,7 +71,9 @@ class TestSelectelProvider(TestCase):
     def _ns_rrset(self, uuid, hostname):
         return dict(
             uuid=uuid,
-            name=f'{hostname}.{self._zone_name}',
+            name=f'{hostname}.{self._zone_name}'
+            if hostname
+            else self._zone_name,
             type='NS',
             ttl=self._ttl,
             records=[
@@ -79,7 +86,9 @@ class TestSelectelProvider(TestCase):
     def _srv_rrset(self, uuid, hostname):
         return dict(
             uuid=uuid,
-            name=f'{hostname}.{self._zone_name}',
+            name=f'{hostname}.{self._zone_name}'
+            if hostname
+            else self._zone_name,
             type='SRV',
             ttl=self._ttl,
             records=[
@@ -91,7 +100,9 @@ class TestSelectelProvider(TestCase):
     def _txt_rrset(self, uuid, hostname):
         return dict(
             uuid=uuid,
-            name=f'{hostname}.{self._zone_name}',
+            name=f'{hostname}.{self._zone_name}'
+            if hostname
+            else self._zone_name,
             type='TXT',
             ttl=self._ttl,
             records=[dict(content='"Foo1"'), dict(content='"Foo2"')],
@@ -100,14 +111,15 @@ class TestSelectelProvider(TestCase):
     def _sshfp_rrset(self, uuid, hostname):
         return dict(
             uuid=uuid,
-            name=f'{hostname}.{self._zone_name}',
+            name=f'{hostname}.{self._zone_name}'
+            if hostname
+            else self._zone_name,
             type='SSHFP',
             ttl=self._ttl,
             records=[dict(content='1 1 123456789abcdef')],
         )
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def setUp(self):
         # A, subdomain=''
         a_uuid = str(uuid.uuid4())
         self.rrsets.append(self._a_rrset(a_uuid, ''))
@@ -163,16 +175,17 @@ class TestSelectelProvider(TestCase):
                 data=to_octodns_record_data(self._mx_rrset(mx_uuid, '')),
             )
         )
+        # root NS record not supported for unit.tests.; ignoring it
         # NS, subdomain=''
-        ns_uuid = str(uuid.uuid4())
-        self.rrsets.append(self._ns_rrset(ns_uuid, ''))
-        self.expected_records.add(
-            Record.new(
-                self.octodns_zone,
-                '',
-                data=to_octodns_record_data(self._ns_rrset(ns_uuid, '')),
-            )
-        )
+        # ns_uuid = str(uuid.uuid4())
+        # self.rrsets.append(self._ns_rrset(ns_uuid, ''))
+        # self.expected_records.add(
+        #     Record.new(
+        #         self.octodns_zone,
+        #         '',
+        #         data=to_octodns_record_data(self._ns_rrset(ns_uuid, '')),
+        #     )
+        # )
         # NS, subdomain='www3'
         ns_sub_uuid = str(uuid.uuid4())
         self.rrsets.append(self._ns_rrset(ns_sub_uuid, 'www3'))
@@ -230,6 +243,11 @@ class TestSelectelProvider(TestCase):
             )
         )
 
+    def tearDown(self):
+        self.rrsets.clear()
+        self.expected_records.clear()
+        self.octodns_zone = Zone(self._zone_name, [])
+
     @requests_mock.Mocker()
     def test_populate(self, fake_http):
         fake_http.get(
@@ -248,85 +266,293 @@ class TestSelectelProvider(TestCase):
             ),
         )
         zone = Zone(self._zone_name, [])
+
         provider = SelectelProvider(self._version, self._openstack_token)
         provider.populate(zone)
-        print("Excpected", self.expected_records)
-        print("Zone", zone.records)
+
+        self.assertEqual(len(self.rrsets), len(zone.records))
         self.assertEqual(self.expected_records, zone.records)
 
-    # @requests_mock.Mocker()
-    # def test_populate_invalid_record(self, fake_http):
-    #     more_record = self.api_record
-    #     more_record.append(
-    #         {
-    #             "name": "unit.tests",
-    #             "id": 100001,
-    #             "content": "support.unit.tests.",
-    #             "ttl": 300,
-    #             "ns": "ns1.unit.tests",
-    #             "type": "SOA",
-    #             "email": "support@unit.tests",
-    #         }
-    #     )
+    @requests_mock.Mocker()
+    def test_apply(self, fake_http):
+        fake_http.get(
+            f'{DNSClient.API_URL}/zones',
+            json=dict(
+                result=self.selectel_zones,
+                limit=len(self.selectel_zones),
+                next_offset=0,
+            ),
+        )
+        fake_http.get(
+            f'{DNSClient.API_URL}/zones/{self._zone_uuid}/'
+            f'rrset?limit={DNSClient._PAGINATION_LIMIT}&offset=0',
+            json=dict(result=list(), limit=0, next_offset=0),
+        )
+        fake_http.post(
+            f'{DNSClient.API_URL}/zones/{self._zone_uuid}/rrset', json=dict()
+        )
 
-    #     zone = Zone('unit.tests.', [])
-    #     fake_http.get(f'{self.API_URL}/unit.tests/records/', json=more_record)
-    #     fake_http.get(f'{self.API_URL}/', json=self.domain)
-    #     fake_http.head(
-    #         f'{self.API_URL}/unit.tests/records/',
-    #         headers={'X-Total-Count': str(len(self.api_record))},
-    #     )
-    #     fake_http.head(
-    #         f'{self.API_URL}/', headers={'X-Total-Count': str(len(self.domain))}
-    #     )
+        provider = SelectelProvider(
+            self._version, self._openstack_token, strict_supports=False
+        )
 
-    #     zone.add_record(
-    #         Record.new(
-    #             self.zone,
-    #             'unsup',
-    #             {
-    #                 'ttl': 200,
-    #                 'type': 'NAPTR',
-    #                 'value': {
-    #                     'order': 40,
-    #                     'preference': 70,
-    #                     'flags': 'U',
-    #                     'service': 'SIP+D2U',
-    #                     'regexp': '!^.*$!sip:info@bar.example.com!',
-    #                     'replacement': '.',
-    #                 },
-    #             },
-    #         )
-    #     )
+        zone = Zone(self._zone_name, [])
+        for record in self.expected_records:
+            zone.add_record(record)
 
-    #     provider = SelectelProvider(123, 'secret_token')
-    #     provider.populate(zone)
+        plan = provider.plan(zone)
+        self.assertEqual(len(self.expected_records), len(plan.changes))
+        self.assertEqual(len(self.expected_records), provider.apply(plan))
 
-    #     self.assertNotEqual(self.expected, zone.records)
+    @requests_mock.Mocker()
+    def test_apply_with_create_zone(self, fake_http):
+        zone_name_for_created = 'octodns-zone.test.'
+        zone_uuid = "bdd902e7-7270-44c8-8d18-120fa5e1e5d4"
+        fake_http.get(
+            f'{DNSClient.API_URL}/zones',
+            json=dict(result=list(), limit=0, next_offset=0),
+        )
+        fake_http.get(
+            f'{DNSClient.API_URL}/zones/{zone_uuid}/'
+            f'rrset?limit={DNSClient._PAGINATION_LIMIT}&offset=0',
+            json=dict(result=list(), limit=0, next_offset=0),
+        )
+        fake_http.post(
+            f'{DNSClient.API_URL}/zones',
+            json=dict(uuid=zone_uuid, name=zone_name_for_created),
+        )
+        fake_http.post(f'{DNSClient.API_URL}/zones/{zone_uuid}/rrset')
+        zone = Zone(zone_name_for_created, [])
+        provider = SelectelProvider(
+            self._version, self._openstack_token, strict_supports=False
+        )
+        provider.populate(zone)
 
-    # @requests_mock.Mocker()
-    # def test_apply(self, fake_http):
-    #     fake_http.get(f'{self.API_URL}/unit.tests/records/', json=list())
-    #     fake_http.get(f'{self.API_URL}/', json=self.domain)
-    #     fake_http.head(
-    #         f'{self.API_URL}/unit.tests/records/',
-    #         headers={'X-Total-Count': '0'},
-    #     )
-    #     fake_http.head(
-    #         f'{self.API_URL}/', headers={'X-Total-Count': str(len(self.domain))}
-    #     )
-    #     fake_http.post(f'{self.API_URL}/100000/records/', json=list())
+        zone.add_record(
+            Record.new(
+                zone, '', data=dict(ttl=self._ttl, type="A", values=["1.2.3.4"])
+            )
+        )
 
-    #     provider = SelectelProvider(123, 'test_token', strict_supports=False)
+        plan = provider.plan(zone)
+        apply_len = provider.apply(plan)
+        self.assertEqual(1, apply_len)
 
-    #     zone = Zone('unit.tests.', [])
+    @requests_mock.Mocker()
+    def test_populate_with_not_supporting_type(self, fake_http):
+        print("populate_soa")
+        rrsets_with_not_supporting_type = self.rrsets
+        rrsets_with_not_supporting_type.append(
+            dict(
+                name=self._zone_name,
+                ttl=self._ttl,
+                type="SOA",
+                records=[
+                    dict(
+                        content="a.ns.selectel.ru. support.selectel.ru. "
+                        "2023122202 10800 3600 604800 60"
+                    )
+                ],
+            )
+        )
 
-    #     for record in self.expected:
-    #         zone.add_record(record)
+        fake_http.get(
+            f'{DNSClient.API_URL}/zones',
+            json=dict(
+                result=self.selectel_zones,
+                limit=len(self.selectel_zones),
+                next_offset=0,
+            ),
+        )
+        fake_http.get(
+            f'{DNSClient.API_URL}/zones/{self._zone_uuid}/'
+            f'rrset?limit={DNSClient._PAGINATION_LIMIT}&offset=0',
+            json=dict(
+                result=rrsets_with_not_supporting_type,
+                limit=len(self.rrsets),
+                next_offset=0,
+            ),
+        )
 
-    #     plan = provider.plan(zone)
-    #     self.assertEqual(10, len(plan.changes))
-    #     self.assertEqual(10, provider.apply(plan))
+        zone = Zone(self._zone_name, [])
+        print(zone)
+        provider = SelectelProvider(self._version, self._openstack_token)
+        print(provider)
+        provider.populate(zone)
+
+        self.assertNotEqual(
+            len(rrsets_with_not_supporting_type), len(zone.records)
+        )
+        self.assertNotEqual(rrsets_with_not_supporting_type, zone.records)
+
+    @requests_mock.Mocker()
+    def test_apply_update(self, fake_http):
+        fake_http.get(
+            f'{DNSClient.API_URL}/zones',
+            json=dict(
+                result=self.selectel_zones,
+                limit=len(self.selectel_zones),
+                next_offset=0,
+            ),
+        )
+
+        updated_rrset = self.rrsets[0]
+        updated_record = Record.new(
+            zone=self.octodns_zone,
+            name=self.octodns_zone.hostname_from_fqdn(updated_rrset["name"]),
+            data=to_octodns_record_data(updated_rrset),
+        )
+        fake_http.get(
+            f'{DNSClient.API_URL}/zones/{self._zone_uuid}/'
+            f'rrset?limit={DNSClient._PAGINATION_LIMIT}&offset=0',
+            json=dict(
+                result=[self._a_rrset(updated_rrset["uuid"], '')],
+                limit=len(self.rrsets),
+                next_offset=0,
+            ),
+        )
+
+        fake_http.delete(
+            f'{DNSClient.API_URL}/zones/{self._zone_uuid}/rrset/{updated_rrset["uuid"]}'
+        )
+
+        fake_http.post(f'{DNSClient.API_URL}/zones/{self._zone_uuid}/rrset')
+
+        zone = Zone(self._zone_name, [])
+        provider = SelectelProvider(self._version, self._openstack_token)
+        provider.populate(zone)
+
+        zone.remove_record(updated_record)
+        updated_record.ttl *= 2
+        zone.add_record(updated_record)
+
+        plan = provider.plan(zone)
+        apply_len = provider.apply(plan)
+
+        self.assertEqual(1, apply_len)
+
+    @requests_mock.Mocker()
+    def test_apply_delete(self, fake_http):
+        fake_http.get(
+            f'{DNSClient.API_URL}/zones',
+            json=dict(
+                result=self.selectel_zones,
+                limit=len(self.selectel_zones),
+                next_offset=0,
+            ),
+        )
+
+        deleted_rrset = self.rrsets[0]
+        deleted_record = Record.new(
+            zone=self.octodns_zone,
+            name=self.octodns_zone.hostname_from_fqdn(deleted_rrset["name"]),
+            data=to_octodns_record_data(deleted_rrset),
+        )
+        fake_http.get(
+            f'{DNSClient.API_URL}/zones/{self._zone_uuid}/'
+            f'rrset?limit={DNSClient._PAGINATION_LIMIT}&offset=0',
+            json=dict(
+                result=[self._a_rrset(deleted_rrset["uuid"], '')],
+                limit=len(self.rrsets),
+                next_offset=0,
+            ),
+        )
+
+        fake_http.delete(
+            f'{DNSClient.API_URL}/zones/{self._zone_uuid}/rrset/{deleted_rrset["uuid"]}'
+        )
+
+        zone = Zone(self._zone_name, [])
+        provider = SelectelProvider(self._version, self._openstack_token)
+        provider.populate(zone)
+
+        zone.remove_record(deleted_record)
+
+        plan = provider.plan(zone)
+        apply_len = provider.apply(plan)
+
+        self.assertEqual(1, apply_len)
+
+    @requests_mock.Mocker()
+    def test_apply_delete_with_error(self, fake_http):
+        fake_http.get(
+            f'{DNSClient.API_URL}/zones',
+            json=dict(
+                result=self.selectel_zones,
+                limit=len(self.selectel_zones),
+                next_offset=0,
+            ),
+        )
+        fake_http.get(
+            f'{DNSClient.API_URL}/zones/{self._zone_uuid}/'
+            f'rrset?limit={DNSClient._PAGINATION_LIMIT}&offset=0',
+            json=dict(
+                result=self.rrsets, limit=len(self.rrsets), next_offset=0
+            ),
+        )
+        deleted_rrset = self.rrsets[0]
+        deleted_record = Record.new(
+            zone=self.octodns_zone,
+            name=self.octodns_zone.hostname_from_fqdn(deleted_rrset["name"]),
+            data=to_octodns_record_data(deleted_rrset),
+        )
+
+        fake_http.delete(
+            f'{DNSClient.API_URL}/zones/{self._zone_uuid}/rrset/{deleted_rrset["uuid"]}',
+            status_code=500,
+        )
+
+        zone = Zone(self._zone_name, [])
+        provider = SelectelProvider(self._version, self._openstack_token)
+        provider.populate(zone)
+        change = Delete(deleted_record)
+        provider._apply_delete(self._zone_uuid, change)
+
+    @requests_mock.Mocker()
+    def test_include_change_returns_false(self, fake_http):
+        fake_http.get(
+            f'{DNSClient.API_URL}/zones',
+            json=dict(
+                result=self.selectel_zones,
+                limit=len(self.selectel_zones),
+                next_offset=0,
+            ),
+        )
+
+        provider = SelectelProvider(self._version, self._openstack_token)
+        zone = Zone(self._zone_name, [])
+
+        exist_record = Record.new(
+            zone, '', dict(ttl=60, type="A", values=["1.2.3.4"])
+        )
+        new = Record.new(zone, '', dict(ttl=10, type="A", values=["1.2.3.4"]))
+        change = Update(exist_record, new)
+        include_change = provider._include_change(change)
+
+        self.assertFalse(include_change)
+
+    @requests_mock.Mocker()
+    def test_include_change_returns_true(self, fake_http):
+        fake_http.get(
+            f'{DNSClient.API_URL}/zones',
+            json=dict(
+                result=self.selectel_zones,
+                limit=len(self.selectel_zones),
+                next_offset=0,
+            ),
+        )
+
+        provider = SelectelProvider(self._version, self._openstack_token)
+        zone = Zone(self._zone_name, [])
+
+        exist_record = Record.new(
+            zone, '', dict(ttl=60, type="A", values=["1.2.3.4"])
+        )
+        new = Record.new(zone, '', dict(ttl=70, type="A", values=["1.2.3.4"]))
+        change = Update(exist_record, new)
+        include_change = provider._include_change(change)
+
+        self.assertTrue(include_change)
 
     # @requests_mock.Mocker()
     # def test_domain_list(self, fake_http):
@@ -388,24 +614,6 @@ class TestSelectelProvider(TestCase):
     #     self.assertEqual(10, provider.apply(plan))
 
     # @requests_mock.Mocker()
-    # def test_delete_no_exist_record(self, fake_http):
-    #     fake_http.get(f'{self.API_URL}/', json=self.domain)
-    #     fake_http.get(f'{self.API_URL}/100000/records/', json=list())
-    #     fake_http.head(
-    #         f'{self.API_URL}/', headers={'X-Total-Count': str(len(self.domain))}
-    #     )
-    #     fake_http.head(
-    #         f'{self.API_URL}/unit.tests/records/',
-    #         headers={'X-Total-Count': '0'},
-    #     )
-
-    #     provider = SelectelProvider(123, 'test_token')
-
-    #     zone = Zone('unit.tests.', [])
-
-    #     provider.delete_record('unit.tests', 'NS', zone)
-
-    # @requests_mock.Mocker()
     # def test_change_record(self, fake_http):
     #     exist_record = [
     #         self.aaaa_record,
@@ -452,27 +660,6 @@ class TestSelectelProvider(TestCase):
     #     plan = provider.plan(zone)
     #     self.assertEqual(10, len(plan.changes))
     #     self.assertEqual(10, provider.apply(plan))
-
-    # @requests_mock.Mocker()
-    # def test_include_change_returns_false(self, fake_http):
-    #     fake_http.get(f'{self.API_URL}/', json=self.domain)
-    #     fake_http.head(
-    #         f'{self.API_URL}/', headers={'X-Total-Count': str(len(self.domain))}
-    #     )
-    #     provider = SelectelProvider(123, 'test_token')
-    #     zone = Zone('unit.tests.', [])
-
-    #     exist_record = Record.new(
-    #         zone, '', {'ttl': 60, 'type': 'A', 'values': ['1.1.1.1', '2.2.2.2']}
-    #     )
-    #     new = Record.new(
-    #         zone, '', {'ttl': 10, 'type': 'A', 'values': ['1.1.1.1', '2.2.2.2']}
-    #     )
-    #     change = Update(exist_record, new)
-
-    #     include_change = provider._include_change(change)
-
-    #     self.assertFalse(include_change)
 
     # @requests_mock.Mocker()
     # def test_fail_record_deletion(self, fake_http):
