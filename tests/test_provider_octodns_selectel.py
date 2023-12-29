@@ -24,272 +24,211 @@ class TestSelectelProvider(TestCase):
     _version = '0.0.1'
     _openstack_token = 'some-openstack-token'
 
-    def _a_rrset(self, hostname):
+    def _a_rrset(self, uuid, hostname):
         return dict(
-            uuid=str(uuid.uuid4()),
+            uuid=uuid,
             name=f'{hostname}.{self._zone_name}',
             type='A',
             ttl=self._ttl,
             records=[dict(content='1.2.3.4'), dict(content='5.6.7.8')],
         )
 
-    def _cname_rrset(self, hostname):
+    def _aaaa_rrset(self, uuid, hostname):
         return dict(
-            uuid=str(uuid.uuid4()),
+            uuid=uuid,
+            name=f'{hostname}.{self._zone_name}',
+            type='AAAA',
+            ttl=self._ttl,
+            records=[
+                dict(content="4ad4:a6c4:f856:18be:5a5f:7f16:cc3a:fab9"),
+                dict(content="da78:f69b:8e5a:6221:d0c9:64b8:c6c0:2eab"),
+            ],
+        )
+
+    def _cname_rrset(self, uuid, hostname):
+        return dict(
+            uuid=uuid,
             name=f'{hostname}.{self._zone_name}',
             type='CNAME',
             ttl=self._ttl,
             records=[dict(content=self._zone_name)],
         )
 
+    def _mx_rrset(self, uuid, hostname):
+        return dict(
+            uuid=uuid,
+            name=f'{hostname}.{self._zone_name}',
+            type='MX',
+            ttl=self._ttl,
+            records=[dict(content=f'10 mx.{self._zone_name}')],
+        )
+
+    def _ns_rrset(self, uuid, hostname):
+        return dict(
+            uuid=uuid,
+            name=f'{hostname}.{self._zone_name}',
+            type='NS',
+            ttl=self._ttl,
+            records=[
+                dict(content=f'ns1.{self._zone_name}'),
+                dict(content=f'ns2.{self._zone_name}'),
+                dict(content=f'ns3.{self._zone_name}'),
+            ],
+        )
+
+    def _srv_rrset(self, uuid, hostname):
+        return dict(
+            uuid=uuid,
+            name=f'{hostname}.{self._zone_name}',
+            type='SRV',
+            ttl=self._ttl,
+            records=[
+                dict(content=f'40 50 5050 foo-1.{self._zone_name}'),
+                dict(content=f'50 60 6060 foo-2.{self._zone_name}'),
+            ],
+        )
+
+    def _txt_rrset(self, uuid, hostname):
+        return dict(
+            uuid=uuid,
+            name=f'{hostname}.{self._zone_name}',
+            type='TXT',
+            ttl=self._ttl,
+            records=[dict(content='"Foo1"'), dict(content='"Foo2"')],
+        )
+
+    def _sshfp_rrset(self, uuid, hostname):
+        return dict(
+            uuid=uuid,
+            name=f'{hostname}.{self._zone_name}',
+            type='SSHFP',
+            ttl=self._ttl,
+            records=[dict(content='1 1 123456789abcdef')],
+        )
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # A, subdomain=''
-        self.rrsets.append(self._a_rrset(hostname=''))
+        a_uuid = str(uuid.uuid4())
+        self.rrsets.append(self._a_rrset(a_uuid, ''))
         self.expected_records.add(
             Record.new(
                 self.octodns_zone,
                 '',
-                data=to_octodns_record_data(self._a_rrset(hostname='')),
+                data=to_octodns_record_data(self._a_rrset(a_uuid, '')),
             )
         )
         # A, subdomain='sub'
-        self.rrsets.append(self._a_rrset(hostname='sub'))
+        a_sub_uuid = str(uuid.uuid4())
+        self.rrsets.append(self._a_rrset(a_sub_uuid, 'sub'))
         self.expected_records.add(
             Record.new(
                 self.octodns_zone,
                 'sub',
-                data=to_octodns_record_data(self._a_rrset(hostname='sub')),
+                data=to_octodns_record_data(self._a_rrset(a_sub_uuid, 'sub')),
             )
         )
 
         # CNAME, subdomain='www2'
-        self.rrsets.append(self._cname_rrset(hostname='www2'))
+        cname_uuid = str(uuid.uuid4())
+        self.rrsets.append(self._cname_rrset(cname_uuid, 'www2'))
         self.expected_records.add(
             Record.new(
                 self.octodns_zone,
                 'www2',
-                data=to_octodns_record_data(self._cname_rrset(hostname='www2')),
+                data=to_octodns_record_data(
+                    self._cname_rrset(cname_uuid, 'www2')
+                ),
             )
         )
         # CNAME, subdomain='wwwdot'
-        self.rrsets.append(self._cname_rrset(hostname='wwwdot'))
+        cname_sub_uuid = str(uuid.uuid4())
+        self.rrsets.append(self._cname_rrset(cname_sub_uuid, 'wwwdot'))
         self.expected_records.add(
             Record.new(
                 self.octodns_zone,
                 'wwwdot',
                 data=to_octodns_record_data(
-                    self._cname_rrset(hostname='wwwdot')
+                    self._cname_rrset(cname_sub_uuid, 'wwwdot')
                 ),
             )
         )
-
-    # # MX
-    # api_record.append(
-    #     {
-    #         'type': 'MX',
-    #         'ttl': 400,
-    #         'content': 'mx1.unit.tests',
-    #         'priority': 10,
-    #         'name': 'unit.tests',
-    #         'id': 4,
-    #     }
-    # )
-    # expected.add(
-    #     Record.new(
-    #         zone,
-    #         '',
-    #         {
-    #             'ttl': 400,
-    #             'type': 'MX',
-    #             'values': [{'preference': 10, 'exchange': 'mx1.unit.tests.'}],
-    #         },
-    #     )
-    # )
-
-    # # NS
-    # api_record.append(
-    #     {
-    #         'type': 'NS',
-    #         'ttl': 600,
-    #         'content': 'ns1.unit.tests',
-    #         'name': 'unit.tests.',
-    #         'id': 6,
-    #     }
-    # )
-    # api_record.append(
-    #     {
-    #         'type': 'NS',
-    #         'ttl': 600,
-    #         'content': 'ns2.unit.tests',
-    #         'name': 'unit.tests',
-    #         'id': 7,
-    #     }
-    # )
-    # api_record.append(
-    #     {
-    #         'type': 'NS',
-    #         'ttl': 600,
-    #         'content': 'ns3.unit.tests.',
-    #         'name': 'unit.tests',
-    #         'id': 7,
-    #     }
-    # )
-    # expected.add(
-    #     Record.new(
-    #         zone,
-    #         '',
-    #         {
-    #             'ttl': 600,
-    #             'type': 'NS',
-    #             'values': [
-    #                 'ns1.unit.tests.',
-    #                 'ns2.unit.tests.',
-    #                 'ns3.unit.tests.',
-    #             ],
-    #         },
-    #     )
-    # )
-
-    # # NS with sub
-    # api_record.append(
-    #     {
-    #         'type': 'NS',
-    #         'ttl': 700,
-    #         'content': 'ns3.unit.tests',
-    #         'name': 'www3.unit.tests',
-    #         'id': 8,
-    #     }
-    # )
-    # api_record.append(
-    #     {
-    #         'type': 'NS',
-    #         'ttl': 700,
-    #         'content': 'ns4.unit.tests',
-    #         'name': 'www3.unit.tests',
-    #         'id': 9,
-    #     }
-    # )
-    # expected.add(
-    #     Record.new(
-    #         zone,
-    #         'www3',
-    #         {
-    #             'ttl': 700,
-    #             'type': 'NS',
-    #             'values': ['ns3.unit.tests.', 'ns4.unit.tests.'],
-    #         },
-    #     )
-    # )
-
-    # # SRV
-    # api_record.append(
-    #     {
-    #         'type': 'SRV',
-    #         'ttl': 800,
-    #         'target': 'foo-1.unit.tests',
-    #         'weight': 20,
-    #         'priority': 10,
-    #         'port': 30,
-    #         'id': 10,
-    #         'name': '_srv._tcp.unit.tests',
-    #     }
-    # )
-    # api_record.append(
-    #     {
-    #         'type': 'SRV',
-    #         'ttl': 800,
-    #         'target': 'foo-2.unit.tests',
-    #         'name': '_srv._tcp.unit.tests',
-    #         'weight': 50,
-    #         'priority': 40,
-    #         'port': 60,
-    #         'id': 11,
-    #     }
-    # )
-    # expected.add(
-    #     Record.new(
-    #         zone,
-    #         '_srv._tcp',
-    #         {
-    #             'ttl': 800,
-    #             'type': 'SRV',
-    #             'values': [
-    #                 {
-    #                     'priority': 10,
-    #                     'weight': 20,
-    #                     'port': 30,
-    #                     'target': 'foo-1.unit.tests.',
-    #                 },
-    #                 {
-    #                     'priority': 40,
-    #                     'weight': 50,
-    #                     'port': 60,
-    #                     'target': 'foo-2.unit.tests.',
-    #                 },
-    #             ],
-    #         },
-    #     )
-    # )
-
-    # # AAAA
-    # aaaa_record = {
-    #     'type': 'AAAA',
-    #     'ttl': 200,
-    #     'content': '1:1ec:1::1',
-    #     'name': 'unit.tests',
-    #     'id': 15,
-    # }
-    # api_record.append(aaaa_record)
-    # expected.add(
-    #     Record.new(
-    #         zone, '', {'ttl': 200, 'type': 'AAAA', 'value': '1:1ec:1::1'}
-    #     )
-    # )
-
-    # # TXT
-    # api_record.append(
-    #     {
-    #         'type': 'TXT',
-    #         'ttl': 300,
-    #         'content': 'little text',
-    #         'name': 'text.unit.tests',
-    #         'id': 16,
-    #     }
-    # )
-    # expected.add(
-    #     Record.new(
-    #         zone, 'text', {'ttl': 200, 'type': 'TXT', 'value': 'little text'}
-    #     )
-    # )
-
-    # # SSHFP
-    # api_record.append(
-    #     {
-    #         'type': 'SSHFP',
-    #         'ttl': 800,
-    #         'algorithm': 1,
-    #         'fingerprint_type': 1,
-    #         'fingerprint': "123456789abcdef",
-    #         'id': 17,
-    #         'name': 'sshfp.unit.tests',
-    #     }
-    # )
-    # expected.add(
-    #     Record.new(
-    #         zone,
-    #         'sshfp',
-    #         {
-    #             'ttl': 800,
-    #             'type': 'SSHFP',
-    #             'value': {
-    #                 'algorithm': 1,
-    #                 'fingerprint_type': 1,
-    #                 'fingerprint': "123456789abcdef",
-    #             },
-    #         },
-    #     )
-    # )
+        # MX, subdomain=''
+        mx_uuid = str(uuid.uuid4())
+        self.rrsets.append(self._mx_rrset(mx_uuid, ''))
+        self.expected_records.add(
+            Record.new(
+                self.octodns_zone,
+                '',
+                data=to_octodns_record_data(self._mx_rrset(mx_uuid, '')),
+            )
+        )
+        # NS, subdomain=''
+        ns_uuid = str(uuid.uuid4())
+        self.rrsets.append(self._ns_rrset(ns_uuid, ''))
+        self.expected_records.add(
+            Record.new(
+                self.octodns_zone,
+                '',
+                data=to_octodns_record_data(self._ns_rrset(ns_uuid, '')),
+            )
+        )
+        # NS, subdomain='www3'
+        ns_sub_uuid = str(uuid.uuid4())
+        self.rrsets.append(self._ns_rrset(ns_sub_uuid, 'www3'))
+        self.expected_records.add(
+            Record.new(
+                self.octodns_zone,
+                'www3',
+                data=to_octodns_record_data(
+                    self._ns_rrset(ns_sub_uuid, 'www3')
+                ),
+            )
+        )
+        # AAAA, subdomain=''
+        aaaa_uuid = str(uuid.uuid4())
+        self.rrsets.append(self._aaaa_rrset(aaaa_uuid, ''))
+        self.expected_records.add(
+            Record.new(
+                self.octodns_zone,
+                '',
+                data=to_octodns_record_data(self._aaaa_rrset(aaaa_uuid, '')),
+            )
+        )
+        # SRV, subdomain='_srv._tcp'
+        srv_uuid = str(uuid.uuid4())
+        self.rrsets.append(self._srv_rrset(srv_uuid, '_srv._tcp'))
+        self.expected_records.add(
+            Record.new(
+                self.octodns_zone,
+                '_srv._tcp',
+                data=to_octodns_record_data(
+                    self._srv_rrset(srv_uuid, '_srv._tcp')
+                ),
+            )
+        )
+        # TXT, subdomain='txt'
+        txt_uuid = str(uuid.uuid4())
+        self.rrsets.append(self._txt_rrset(txt_uuid, 'txt'))
+        self.expected_records.add(
+            Record.new(
+                self.octodns_zone,
+                'txt',
+                data=to_octodns_record_data(self._txt_rrset(srv_uuid, 'txt')),
+            )
+        )
+        # SSHFP, subdomain='sshfp'
+        sshfp_uuid = str(uuid.uuid4())
+        self.rrsets.append(self._sshfp_rrset(sshfp_uuid, 'sshfp'))
+        self.expected_records.add(
+            Record.new(
+                self.octodns_zone,
+                'sshfp',
+                data=to_octodns_record_data(
+                    self._sshfp_rrset(srv_uuid, 'sshfp')
+                ),
+            )
+        )
 
     @requests_mock.Mocker()
     def test_populate(self, fake_http):
@@ -311,7 +250,8 @@ class TestSelectelProvider(TestCase):
         zone = Zone(self._zone_name, [])
         provider = SelectelProvider(self._version, self._openstack_token)
         provider.populate(zone)
-
+        print("Excpected", self.expected_records)
+        print("Zone", zone.records)
         self.assertEqual(self.expected_records, zone.records)
 
     # @requests_mock.Mocker()
