@@ -340,7 +340,6 @@ class TestSelectelProvider(TestCase):
 
     @requests_mock.Mocker()
     def test_populate_with_not_supporting_type(self, fake_http):
-        print("populate_soa")
         rrsets_with_not_supporting_type = self.rrsets
         rrsets_with_not_supporting_type.append(
             dict(
@@ -375,9 +374,7 @@ class TestSelectelProvider(TestCase):
         )
 
         zone = Zone(self._zone_name, [])
-        print(zone)
         provider = SelectelProvider(self._version, self._openstack_token)
-        print(provider)
         provider.populate(zone)
 
         self.assertNotEqual(
