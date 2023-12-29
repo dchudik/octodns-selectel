@@ -427,7 +427,6 @@ class TestSelectelProvider(TestCase):
                 next_offset=0,
             ),
         )
-
         deleted_rrset = self.rrsets[0]
         deleted_record = Record.new(
             zone=self.octodns_zone,

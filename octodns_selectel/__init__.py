@@ -8,7 +8,7 @@ from octodns.provider.base import BaseProvider
 from octodns.record import Record, Update
 
 from .dns_client import DNSClient
-from .exceptions import ApiException, SelectelException
+from .exceptions import ApiException
 from .mappings import to_octodns_record_data, to_selectel_rrset
 
 # TODO: remove __VERSION__ with the next major version release
@@ -55,15 +55,12 @@ class SelectelProvider(BaseProvider):
         zone_id = self._get_zone_id_by_name(zone_name)
         for change in changes:
             action = change.__class__.__name__.lower()
-            match action:
-                case 'create':
-                    self._apply_create(zone_id, change)
-                case 'update':
-                    self._apply_update(zone_id, change)
-                case 'delete':
-                    self._apply_delete(zone_id, change)
-                case _:
-                    raise SelectelException(f'Unexpected change type: {action}')
+            if action == 'create':
+                self._apply_create(zone_id, change)
+            if action == 'update':
+                self._apply_update(zone_id, change)
+            if action == 'delete':
+                self._apply_delete(zone_id, change)
 
     def _is_zone_already_created(self, zone_name):
         return zone_name in self._zones.keys()
@@ -106,7 +103,9 @@ class SelectelProvider(BaseProvider):
             lenient,
         )
         before = len(zone.records)
-        rrsets = self.list_rrsets(zone)
+        rrsets = []
+        if self._is_zone_already_created(zone.name):
+            rrsets = self.list_rrsets(zone)
         for rrset in rrsets:
             rrset_type = rrset['type']
             if rrset_type in self.SUPPORTS:
