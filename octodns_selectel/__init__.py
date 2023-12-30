@@ -30,7 +30,6 @@ class SelectelProvider(BaseProvider):
         self._zones = self.group_existing_zones_by_name()
         self._zone_rrsets = {}
 
-    # TODO: is need?
     def _include_change(self, change):
         if isinstance(change, Update):
             existing = change.existing.data
