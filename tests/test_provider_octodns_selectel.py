@@ -372,7 +372,7 @@ class TestSelectelProvider(TestCase):
         self.assertNotEqual(rrsets_with_not_supporting_type, zone.records)
 
     @requests_mock.Mocker()
-    def test_apply_update(self, fake_http):
+    def test_apply_update_ttl(self, fake_http):
         fake_http.get(
             f'{DNSClient.API_URL}/zones',
             json=dict(
@@ -398,11 +398,57 @@ class TestSelectelProvider(TestCase):
             ),
         )
 
-        fake_http.delete(
-            f'{DNSClient.API_URL}/zones/{self._zone_uuid}/rrset/{updated_rrset["uuid"]}'
+        updated_rrset["ttl"] *= 2
+        fake_http.patch(
+            f'{DNSClient.API_URL}/zones/{self._zone_uuid}/rrset/{updated_rrset["uuid"]}',
+            json=updated_rrset,
         )
 
-        fake_http.post(f'{DNSClient.API_URL}/zones/{self._zone_uuid}/rrset')
+        zone = Zone(self._zone_name, [])
+        provider = SelectelProvider(self._version, self._openstack_token)
+        provider.populate(zone)
+
+        zone.remove_record(updated_record)
+        updated_record.ttl *= 2
+        zone.add_record(updated_record)
+
+        plan = provider.plan(zone)
+        apply_len = provider.apply(plan)
+
+        self.assertEqual(1, apply_len)
+
+    @requests_mock.Mocker()
+    def test_apply_update_ttl_internal_error(self, fake_http):
+        fake_http.get(
+            f'{DNSClient.API_URL}/zones',
+            json=dict(
+                result=self.selectel_zones,
+                limit=len(self.selectel_zones),
+                next_offset=0,
+            ),
+        )
+
+        updated_rrset = self.rrsets[0]
+        updated_record = Record.new(
+            zone=self.octodns_zone,
+            name=self.octodns_zone.hostname_from_fqdn(updated_rrset["name"]),
+            data=to_octodns_record_data(updated_rrset),
+        )
+        fake_http.get(
+            f'{DNSClient.API_URL}/zones/{self._zone_uuid}/'
+            f'rrset?limit={DNSClient._PAGINATION_LIMIT}&offset=0',
+            json=dict(
+                result=[self._a_rrset(updated_rrset["uuid"], '')],
+                limit=len(self.rrsets),
+                next_offset=0,
+            ),
+        )
+
+        updated_rrset["ttl"] *= 2
+        fake_http.patch(
+            f'{DNSClient.API_URL}/zones/{self._zone_uuid}/rrset/{updated_rrset["uuid"]}',
+            status_code=500,
+        )
 
         zone = Zone(self._zone_name, [])
         provider = SelectelProvider(self._version, self._openstack_token)

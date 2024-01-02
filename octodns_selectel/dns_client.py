@@ -10,7 +10,6 @@ class DNSClient:
     _PAGINATION_LIMIT = 50
 
     _zone_path = "/zones"
-    __zone_path_specific = "/zones/{}"
     __rrsets_path = "/zones/{}/rrset"
     __rrsets_path_specific = "/zones/{}/rrset/{}"
 
@@ -85,6 +84,10 @@ class DNSClient:
     def create_rrset(self, zone_uuid, data):
         path = self._rrset_path(zone_uuid)
         return self._request('POST', path, data=data)
+
+    def update_rrset(self, zone_uuid, rrset_uuid, data):
+        path = self._rrset_path_specific(zone_uuid, rrset_uuid)
+        return self._request('PATCH', path, data=data)
 
     def delete_rrset(self, zone_uuid, rrset_uuid):
         path = self._rrset_path_specific(zone_uuid, rrset_uuid)
