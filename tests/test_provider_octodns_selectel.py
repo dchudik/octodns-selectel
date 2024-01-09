@@ -401,7 +401,7 @@ class TestSelectelProvider(TestCase):
         updated_rrset["ttl"] *= 2
         fake_http.patch(
             f'{DNSClient.API_URL}/zones/{self._zone_uuid}/rrset/{updated_rrset["uuid"]}',
-            json=updated_rrset,
+            status_code=204
         )
 
         zone = Zone(self._zone_name, [])
@@ -562,8 +562,7 @@ class TestSelectelProvider(TestCase):
         exist_record = Record.new(
             zone, '', dict(ttl=60, type="A", values=["1.2.3.4"])
         )
-        new = Record.new(zone, '', dict(ttl=10, type="A", values=["1.2.3.4"]))
-        change = Update(exist_record, new)
+        change = Update(exist_record, exist_record)
         include_change = provider._include_change(change)
 
         self.assertFalse(include_change)
