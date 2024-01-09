@@ -3,7 +3,7 @@ from unittest import TestCase
 
 import requests_mock
 
-from octodns.record import Delete, Record, Update
+from octodns.record import Record, Update
 from octodns.zone import Zone
 
 from octodns_selectel import DNSClient, SelectelProvider
@@ -459,9 +459,10 @@ class TestSelectelProvider(TestCase):
         zone.add_record(updated_record)
 
         plan = provider.plan(zone)
-        apply_len = provider.apply(plan)
 
-        self.assertEqual(1, apply_len)
+        with self.assertLogs(provider.log, "WARNING"):
+            apply_len = provider.apply(plan)
+            self.assertEqual(1, apply_len)
 
     @requests_mock.Mocker()
     def test_apply_delete(self, fake_http):
@@ -536,8 +537,13 @@ class TestSelectelProvider(TestCase):
         zone = Zone(self._zone_name, [])
         provider = SelectelProvider(self._version, self._openstack_token)
         provider.populate(zone)
-        change = Delete(deleted_record)
-        provider._apply_delete(self._zone_uuid, change)
+        zone.remove_record(deleted_record)
+
+        plan = provider.plan(zone)
+
+        with self.assertLogs(provider.log, "WARNING"):
+            apply_len = provider.apply(plan)
+            self.assertEqual(1, apply_len)
 
     @requests_mock.Mocker()
     def test_include_change_returns_false(self, fake_http):
