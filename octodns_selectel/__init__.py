@@ -151,7 +151,7 @@ class SelectelProvider(BaseProvider):
             self._client.update_rrset(zone_id, rrset_id, data)
         except ApiException as api_exception:
             self.log.warning(
-                f'Failed to update rrset {rrset_id}. {str(api_exception)}'
+                f'Failed to update rrset {rrset_id}. {api_exception}'
             )
 
     def delete_rrset(self, zone_id, rrset_id):
@@ -162,5 +162,5 @@ class SelectelProvider(BaseProvider):
             self._client.delete_rrset(zone_id, rrset_id)
         except ApiException as api_exception:
             self.log.warning(
-                f'Failed to delete rrset {rrset_id}. {str(api_exception)}'
+                f'Failed to delete rrset {rrset_id}. {api_exception}'
             )
