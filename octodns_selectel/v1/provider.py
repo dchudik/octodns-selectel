@@ -253,7 +253,7 @@ class SelectelProvider(BaseProvider):
                 {
                     'algorithm': record['algorithm'],
                     'fingerprint_type': record['fingerprint_type'],
-                    'fingerprint': f'{record["fingerprint"]}.',
+                    'fingerprint': f'{record["fingerprint"]}',
                 }
             )
 
