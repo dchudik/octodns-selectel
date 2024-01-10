@@ -8,7 +8,7 @@ from octodns.provider.base import BaseProvider
 from octodns.record import Record, Update
 
 from .dns_client import DNSClient
-from .exceptions import ApiException, SelectelException
+from .exceptions import ApiException
 from .mappings import to_octodns_record_data, to_selectel_rrset
 
 # TODO: remove __VERSION__ with the next major version release
@@ -30,7 +30,6 @@ class SelectelProvider(BaseProvider):
         self._zones = self.group_existing_zones_by_name()
         self._zone_rrsets = {}
 
-    # TODO: is need?
     def _include_change(self, change):
         if isinstance(change, Update):
             existing = change.existing.data
@@ -55,15 +54,12 @@ class SelectelProvider(BaseProvider):
         zone_id = self._get_zone_id_by_name(zone_name)
         for change in changes:
             action = change.__class__.__name__.lower()
-            match action:
-                case 'create':
-                    self._apply_create(zone_id, change)
-                case 'update':
-                    self._apply_update(zone_id, change)
-                case 'delete':
-                    self._apply_delete(zone_id, change)
-                case _:
-                    raise SelectelException(f'Unexpected change type: {action}')
+            if action == 'create':
+                self._apply_create(zone_id, change)
+            if action == 'update':
+                self._apply_update(zone_id, change)
+            if action == 'delete':
+                self._apply_delete(zone_id, change)
 
     def _is_zone_already_created(self, zone_name):
         return zone_name in self._zones.keys()
@@ -79,7 +75,6 @@ class SelectelProvider(BaseProvider):
 
     def _apply_create(self, zone_id, change):
         new_record = change.new
-        print("New: %s" % change.new)
         rrset = to_selectel_rrset(new_record)
         self.create_rrset(zone_id, rrset)
 
@@ -88,8 +83,8 @@ class SelectelProvider(BaseProvider):
         rrset_id = self._get_rrset_id(
             existing.zone.name, existing._type, existing.fqdn
         )
-        self.delete_rrset(zone_id, rrset_id)
-        self._apply_create(zone_id, change)
+        data_for_update = to_selectel_rrset(change.new)
+        self.update_rrset(zone_id, rrset_id, data_for_update)
 
     def _apply_delete(self, zone_id, change):
         existing = change.existing
@@ -106,7 +101,9 @@ class SelectelProvider(BaseProvider):
             lenient,
         )
         before = len(zone.records)
-        rrsets = self.list_rrsets(zone)
+        rrsets = []
+        if self._is_zone_already_created(zone.name):
+            rrsets = self.list_rrsets(zone)
         for rrset in rrsets:
             rrset_type = rrset['type']
             if rrset_type in self.SUPPORTS:
@@ -146,11 +143,24 @@ class SelectelProvider(BaseProvider):
         self.log.debug('Create rrset. Zone id: %s, data %s', zone_id, data)
         return self._client.create_rrset(zone_id, data)
 
+    def update_rrset(self, zone_id, rrset_id, data):
+        self.log.debug(
+            f'Update rrsets. Zone id: {zone_id}, rrset id: {rrset_id}'
+        )
+        try:
+            self._client.update_rrset(zone_id, rrset_id, data)
+        except ApiException as api_exception:
+            self.log.warning(
+                f'Failed to update rrset {rrset_id}. {api_exception}'
+            )
+
     def delete_rrset(self, zone_id, rrset_id):
         self.log.debug(
             f'Delete rrsets. Zone id: {zone_id}, rrset id: {rrset_id}'
         )
         try:
             self._client.delete_rrset(zone_id, rrset_id)
-        except ApiException:
-            self.log.warning(f'Failed to delete rrset {rrset_id}')
+        except ApiException as api_exception:
+            self.log.warning(
+                f'Failed to delete rrset {rrset_id}. {api_exception}'
+            )
