@@ -11,9 +11,10 @@ def descriptions():
 
 
 def version():
-    with open('octodns_selectel/__init__.py') as fh:
+    with open('octodns_selectel/version.py') as fh:
         for line in fh:
-            if line.startswith('__version__'):
+            if line.startswith('version'):
+                print(line.split("'"))
                 return line.split("'")[1]
     return 'unknown'
 

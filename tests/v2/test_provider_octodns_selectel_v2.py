@@ -6,8 +6,9 @@ import requests_mock
 from octodns.record import Record, Update
 from octodns.zone import Zone
 
-from octodns_selectel import DNSClient, SelectelProvider
-from octodns_selectel.mappings import to_octodns_record_data
+from octodns_selectel.v2.dns_client import DNSClient
+from octodns_selectel.v2.mappings import to_octodns_record_data
+from octodns_selectel.v2.provider import SelectelProvider
 
 
 class TestSelectelProvider(TestCase):
@@ -401,7 +402,7 @@ class TestSelectelProvider(TestCase):
         updated_rrset["ttl"] *= 2
         fake_http.patch(
             f'{DNSClient.API_URL}/zones/{self._zone_uuid}/rrset/{updated_rrset["uuid"]}',
-            status_code=204
+            status_code=204,
         )
 
         zone = Zone(self._zone_name, [])

@@ -13,8 +13,11 @@ from octodns.record import (
 )
 from octodns.zone import Zone
 
-from octodns_selectel.exceptions import SelectelException
-from octodns_selectel.mappings import to_octodns_record_data, to_selectel_rrset
+from octodns_selectel.v2.exceptions import SelectelException
+from octodns_selectel.v2.mappings import (
+    to_octodns_record_data,
+    to_selectel_rrset,
+)
 
 PairTest = collections.namedtuple("PairTest", ["record", "rrset"])
 

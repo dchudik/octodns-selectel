@@ -2,8 +2,8 @@ from unittest import TestCase
 
 import requests_mock
 
-from octodns_selectel.dns_client import DNSClient
-from octodns_selectel.exceptions import ApiException
+from octodns_selectel.v2.dns_client import DNSClient
+from octodns_selectel.v2.exceptions import ApiException
 
 
 class TestSelectelDNSClient(TestCase):
