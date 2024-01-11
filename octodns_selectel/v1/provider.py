@@ -124,6 +124,8 @@ class SelectelProvider(BaseProvider):
         existing = change.existing
         self.delete_record(zone_name, existing._type, existing.name)
 
+    # This method is called dynamically in octodns.Manager._preprocess_zones()
+    # and required for use of "*" if provider is source.
     def list_zones(self):
         zones_without_dot = self.domain_list()
         return [

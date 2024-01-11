@@ -590,3 +590,18 @@ class TestSelectelProvider(TestCase):
         include_change = provider._include_change(change)
 
         self.assertTrue(include_change)
+
+    @requests_mock.Mocker()
+    def test_list_zones(self, fake_http):
+        fake_http.get(
+            f'{DNSClient.API_URL}/zones',
+            json=dict(
+                result=self.selectel_zones,
+                limit=len(self.selectel_zones),
+                next_offset=0,
+            ),
+        )
+        provider = SelectelProvider(self._version, self._openstack_token)
+        zones = provider.list_zones()
+
+        self.assertListEqual(zones, self._zone_name.split())
