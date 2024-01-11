@@ -32,22 +32,80 @@ octodns-selectel==0.0.3
 
 ### Configuration
 
+| :memo:        | Use SelectelProviderV2  |
+|---------------|:------------------------|
+
+#### Selectel Provider V1
+
 ```yaml
 providers:
   selectel:
-    class: octodns_selectel.SelectelProvider
+    class: octodns_selectel.SelectelProviderV1
     token: env/SELECTEL_TOKEN
+```
+
+#### Selectel Provider V2
+
+```yaml
+providers:
+  selectel:
+    class: octodns_selectel.SelectelProviderV2
+    token: env/KEYSTONE_PROJECT_TOKEN
+```
+
+#### Token for Provider V1
+
+Use Selectel Token.
+More information about Selectel Token read [here](https://developers.selectel.com/docs/control-panel/authorization/#selectel-token-api-key).
+
+#### Token for Provider V2
+
+Use Keystone Project Token.
+More information about Keystone Project Token read [here](https://developers.selectel.com/docs/control-panel/authorization/#project-token).
+
+### Migrating from DNS V1 to DNS V2
+
+```yaml
+---
+processors:
+  no-root-ns:
+    class: octodns.processor.filter.IgnoreRootNsFilter
+providers:
+  selectel_v1:
+    class: octodns_selectel.SelectelProviderV1
+    token: env/SELECTEL_TOKEN
+  selectel_v2:
+    class: octodns_selectel.SelectelProviderV2
+    token: env/KEYSTONE_PROJECT_TOKEN
+zones: 
+  "*":
+    sources:
+    - selectel_v1
+    processors:
+    - no-root-ns
+    targets:
+    - selectel_v2
 ```
 
 ### Support Information
 
 #### Records
 
-SelectelProvider supports A, AAAA, ALIAS, CNAME, MX, NS, SRV, SSHFP and TXT
+SelectelProviderV1 and SelectelProviderV2 supports:
+
+1. A;
+2. AAAA;
+3. ALIAS;
+4. CNAME;
+5. MX;
+6. NS;
+7. SRV;
+8. SSHFP
+9. TXT
 
 #### Dynamic
 
-SelectelProvider does not support dynamic records.
+SelectelProviderV1 and SelectelProviderV2 does not support dynamic records.
 
 ### Development
 
