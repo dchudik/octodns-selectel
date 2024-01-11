@@ -127,9 +127,9 @@ class SelectelProvider(BaseProvider):
         self._zones[zone["name"]] = zone
         return zone
 
-    # This method is called dynamically in octodns.Manager._preprocess_zones()
-    # and required for use of "*" if provider is source.
     def list_zones(self):
+        # This method is called dynamically in octodns.Manager._preprocess_zones()
+        # and required for use of "*" if provider is source.
         return [zone_name for zone_name in self._zones]
 
     def group_existing_zones_by_name(self):
