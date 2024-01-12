@@ -1,6 +1,6 @@
 ## Selectel DNS provider for octoDNS
 
-An [octoDNS](https://github.com/octodns/octodns/) provider that targets [Selectel DNS](https://selectel.ru/en/services/additional/dns/).
+An [octoDNS](https://github.com/octodns/octodns/) provider that targets [Selectel DNS](https://docs.selectel.com/cloud-services/dns-hosting/dns_hosting/).
 
 ### Installation
 
