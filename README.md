@@ -35,7 +35,7 @@ providers:
     token: env/KEYSTONE_PROJECT_TOKEN
 ```
 Set **KEYSTONE_PROJECT_TOKEN** environmental variable or write value directly in config without `env/` prefix.  
-How to obtain required token you can read [here](#token-for-selectelprovider)
+How to obtain required token you can read [here](https://developers.selectel.com/docs/control-panel/authorization/#project-token)
 ## Quickstart
 To get more details on configuration and capabilities check [octodns repository](https://github.com/octodns/octodns)
 #### 1. Organize your configs.
