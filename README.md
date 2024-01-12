@@ -40,6 +40,7 @@ For receive KEYSTONE_PROJECT_TOKEN read [here](#token-for-provider)
 Structure folders
 
 ```bash
+# e.g. .octodns
 ├── config.yaml
 └── zones
     ├── octodns-test-alias.com.yaml
