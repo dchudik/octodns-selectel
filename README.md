@@ -2,19 +2,36 @@
 
 An [octoDNS](https://github.com/octodns/octodns/) provider that targets [Selectel DNS](https://docs.selectel.com/cloud-services/dns-hosting/dns_hosting/).
 
-### Installation
+## Table of Contents
 
-#### Command line
+* [Installation](#installation)
+  * [Command line](#command-line)
+  * [requirements.txt/setup.py](#requirements-or-setup)
+* [Configuration](#configuration)
+  * [Selectel Provider](#selectel-provider)
+* [Examples](#configuration)
+  * [Create zone and added records](#create-zone-and-added-records)
+  * [Migrating from DNS V1 to DNS V2](#migrating-from-dns-v1-to-dns-v2)
+  * [Token for SelectelProviderLegacy](#token-for-selectelproviderlegacy)
+  * [Token for SelectelProvider](#token-for-selectelprovider)
+* [Support Information](#support-information)
+  * [Records](#records)
+  * [Dynamic](#dynamic)
+* [Development](#development)
+
+## Installation
+
+### Command line
 
 ```bash
 pip install octodns-selectel
 ```
 
-#### requirements.txt/setup.py
+### requirements.txt/setup.py {#requirements-or-setup}
 
 Pinning specific versions is recommended to avoid unplanned upgrades.
 
-##### Versions
+#### Versions
 
 ```
 # Start with the latest versions and don't just copy what's here
@@ -22,9 +39,9 @@ octodns==1.4.0
 octodns-selectel==1.0.0
 ```
 
-### Configuration
+## Configuration
 
-#### Selectel Provider
+### Selectel Provider
 
 ```yaml
 providers:
@@ -33,9 +50,11 @@ providers:
     token: env/KEYSTONE_PROJECT_TOKEN
 ```
 
-For receive KEYSTONE_PROJECT_TOKEN read [here](#token-for-provider)
+For receive KEYSTONE_PROJECT_TOKEN read [here](#token-for-selectelprovider)
 
-### Examples
+## Examples
+
+### Create zone and added records
 
 Structure folders
 
@@ -153,7 +172,7 @@ Use command:
 $octodns-sync --config-file=./config.yaml
 ```
 
-#### Migrating from DNS V1 to DNS V2
+### Migrating from DNS V1 to DNS V2
 
 ```yaml
 # ./config-migrate.yaml
@@ -185,26 +204,26 @@ Use command:
 $octodns-sync --config-file=./config-migrate.yaml
 ```
 
-#### Token for ProviderLegacy
+### Token for SelectelProviderLegacy
 
 Use Selectel Token.
 More information about Selectel Token read [here](https://developers.selectel.com/docs/control-panel/authorization/#selectel-token-api-key).
 
-#### Token for Provider
+### Token for SelectelProvider
 
 Use Keystone Project Token.
 More information about Keystone Project Token read [here](https://developers.selectel.com/docs/control-panel/authorization/#project-token).
 
-### Support Information
+## Support Information
 
-#### Records
+### Records
 
 SelectelProvider supports A, AAAA, ALIAS, CNAME, MX, NS, SRV, SSHFP and TXT
 
-#### Dynamic
+### Dynamic
 
 SelectelProvider does not support dynamic records.
 
-### Development
+## Development
 
 See the [/script/](/script/) directory for some tools to help with the development process. They generally follow the [Script to rule them all](https://github.com/github/scripts-to-rule-them-all) pattern. Most useful is `./script/bootstrap` which will create a venv and install both the runtime and development related requirements. It will also hook up a pre-commit hook that covers most of what's run by CI.
