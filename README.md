@@ -87,6 +87,107 @@ zones:
     - selectel_v2
 ```
 
+### Examples
+
+config.yaml
+
+```yaml
+---
+processors:
+  no-root-ns:
+    class: octodns.processor.filter.IgnoreRootNsFilter
+providers:
+  config:
+    class: octodns.provider.yaml.YamlProvider
+    directory: ./zones
+    default_ttl: 3600
+    enforce_order: True
+  selectel_v2:
+    class: octodns_selectel.SelectelProviderV2
+    token: env/KEYSTONE_PROJECT_TOKEN
+zones:
+  octodns-test.ru.:
+    sources:
+      - config
+    targets:
+      - selectel_v2
+  octodns-test-alias.ru.:
+    sources:
+      - config
+    targets:
+      - selectel_v2
+```
+
+zones/octodns-test-zone.com.yaml
+
+```yaml
+---
+'':
+  - ttl: 3600
+    type: A
+    values:
+      - 1.2.3.4
+      - 1.2.3.5
+  - ttl: 3600
+    type: AAAA
+    values: 
+      - 6dc1:b9af:74ca:84e9:6c7c:5c0f:c292:9188
+      - 5051:e345:9038:052c:00db:eb98:d871:8ae6
+  - ttl: 3600
+    type: MX
+    value:
+      exchange: mail1.octodns-test.ru.
+      preference: 10
+  - ttl: 3600
+    type: TXT
+    values: 
+      - "bar"
+      - "foo"
+
+_sip._tcp:
+  - ttl: 3600
+    type: SRV
+    values:
+    - port: 5060
+      priority: 10
+      target: phone1.example.com.
+      weight: 60
+    - port: 5030
+      priority: 20
+      target: phone2.example.com.
+      weight: 0     
+
+foo:
+  - ttl: 3600
+    type: CNAME
+    value: bar.octodns-test.ru.
+
+sshfp2:
+  - ttl: 3600
+    type: SSHFP
+    values:
+    - algorithm: 1
+      fingerprint: "4158f281921260b0205508121c6f5cee879e15f22bdbc319ef2ae9fd308db3be"
+      fingerprint_type: 2
+    - algorithm: 4
+      fingerprint: "123456789abcdef67890123456789abcdef67890123456789abcdef123456789"
+      fingerprint_type: 2
+
+txt2:
+  - ttl: 3600
+    type: TXT
+    values: 
+      - "bar_txt"
+      - "foo_txt"
+
+v12:
+  - ttl: 3600
+    type: NS
+    values:
+      - ns1.selectel.ru.
+      - ns2.selectel.ru.
+```
+
 ### Support Information
 
 #### Records
