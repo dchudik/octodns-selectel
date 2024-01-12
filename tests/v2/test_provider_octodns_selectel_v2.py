@@ -6,8 +6,9 @@ import requests_mock
 from octodns.record import Record, Update
 from octodns.zone import Zone
 
-from octodns_selectel import DNSClient, SelectelProvider
-from octodns_selectel.mappings import to_octodns_record_data
+from octodns_selectel.v2.dns_client import DNSClient
+from octodns_selectel.v2.mappings import to_octodns_record_data
+from octodns_selectel.v2.provider import SelectelProvider
 
 
 class TestSelectelProvider(TestCase):
@@ -227,7 +228,7 @@ class TestSelectelProvider(TestCase):
                 self.octodns_zone,
                 'sshfp',
                 data=to_octodns_record_data(
-                    self._sshfp_rrset(srv_uuid, 'sshfp')
+                    self._sshfp_rrset(sshfp_uuid, 'sshfp')
                 ),
             )
         )
@@ -401,7 +402,7 @@ class TestSelectelProvider(TestCase):
         updated_rrset["ttl"] *= 2
         fake_http.patch(
             f'{DNSClient.API_URL}/zones/{self._zone_uuid}/rrset/{updated_rrset["uuid"]}',
-            status_code=204
+            status_code=204,
         )
 
         zone = Zone(self._zone_name, [])
@@ -568,6 +569,66 @@ class TestSelectelProvider(TestCase):
         self.assertFalse(include_change)
 
     @requests_mock.Mocker()
+    def test_include_change_sshfp_returns_false(self, fake_http):
+        fake_http.get(
+            f'{DNSClient.API_URL}/zones',
+            json=dict(
+                result=self.selectel_zones,
+                limit=len(self.selectel_zones),
+                next_offset=0,
+            ),
+        )
+
+        provider = SelectelProvider(self._version, self._openstack_token)
+        zone = Zone(self._zone_name, [])
+        fingerprint1 = '123456789abcdef'
+        fingerprint2 = 'abcdef123456789'
+        exist_record = Record.new(
+            zone,
+            '',
+            dict(
+                ttl=60,
+                type="SSHFP",
+                values=[
+                    dict(
+                        algorithm=1,
+                        fingerprint_type=1,
+                        fingerprint=fingerprint1,
+                    ),
+                    dict(
+                        algorithm=1,
+                        fingerprint_type=1,
+                        fingerprint=fingerprint2,
+                    ),
+                ],
+            ),
+        )
+        new_record = Record.new(
+            zone,
+            '',
+            dict(
+                ttl=60,
+                type="SSHFP",
+                values=[
+                    dict(
+                        algorithm=1,
+                        fingerprint_type=1,
+                        fingerprint=fingerprint1.upper(),
+                    ),
+                    dict(
+                        algorithm=1,
+                        fingerprint_type=1,
+                        fingerprint=fingerprint2.upper(),
+                    ),
+                ],
+            ),
+        )
+        change = Update(exist_record, new_record)
+        include_change = provider._include_change(change)
+
+        self.assertFalse(include_change)
+
+    @requests_mock.Mocker()
     def test_include_change_returns_true(self, fake_http):
         fake_http.get(
             f'{DNSClient.API_URL}/zones',
@@ -589,3 +650,18 @@ class TestSelectelProvider(TestCase):
         include_change = provider._include_change(change)
 
         self.assertTrue(include_change)
+
+    @requests_mock.Mocker()
+    def test_list_zones(self, fake_http):
+        fake_http.get(
+            f'{DNSClient.API_URL}/zones',
+            json=dict(
+                result=self.selectel_zones,
+                limit=len(self.selectel_zones),
+                next_offset=0,
+            ),
+        )
+        provider = SelectelProvider(self._version, self._openstack_token)
+        zones = provider.list_zones()
+
+        self.assertListEqual(zones, self._zone_name.split())
