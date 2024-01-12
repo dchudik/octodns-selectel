@@ -162,6 +162,13 @@ foo:
     type: CNAME
     value: bar.octodns-test.com.
 
+oldns:
+  - ttl: 3600
+    type: NS
+    values:
+      - ns1.selectel.com.
+      - ns2.selectel.com.
+
 sshfp:
   - ttl: 3600
     type: SSHFP
@@ -179,13 +186,6 @@ txt:
     values: 
       - "bar_txt"
       - "foo_txt"
-
-oldns:
-  - ttl: 3600
-    type: NS
-    values:
-      - ns1.selectel.com.
-      - ns2.selectel.com.
 ```
 
 zones/octodns-test-alias.com.yaml
