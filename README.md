@@ -5,78 +5,62 @@ An [octoDNS](https://github.com/octodns/octodns/) provider that targets [Selecte
 ## Contents
 
 * [Installation](#installation)
-  * [Command line](#command-line)
-  * [requirements.txt/setup.py](#requirements-or-setup)
+* [Capabilities](#capabilities)
 * [Configuration](#configuration)
-  * [Selectel Provider](#selectel-provider)
-* [Examples](#configuration)
-  * [Create zone and added records](#create-zone-and-added-records)
-  * [Migrating from DNS V1 to DNS V2](#migrating-from-dns-v1-to-dns-v2)
-  * [Token for SelectelProviderLegacy](#token-for-selectelproviderlegacy)
-  * [Token for SelectelProvider](#token-for-selectelprovider)
-* [Support Information](#support-information)
-  * [Records](#records)
-  * [Dynamic](#dynamic)
+* [Quickstart](#quickstart)
+* [Current provider vs. Legacy provider](#current-provider-vs-legacy-provider)
+* [Migration from legacy DNS API](#migration-from-legacy-dns-api)
 * [Development](#development)
 
 ## Installation
-
-### Command line
+Install Selectel plugin in your environment and [octodns](https://github.com/octodns/octodns) itself if it is not present.
 
 ```bash
-pip install octodns-selectel
+pip install octodns octodns-selectel
 ```
 
-### requirements.txt/setup.py {#requirements-or-setup}
+## Capabilities
 
-Pinning specific versions is recommended to avoid unplanned upgrades.
-
-#### Versions
-
-```
-# Start with the latest versions and don't just copy what's here
-octodns==1.4.0
-octodns-selectel==1.0.0
-```
+| What              | Value                                             |
+|-------------------|---------------------------------------------------|
+| Supported records | A, AAAA, ALIAS, CNAME, MX, NS, SRV, SSHFP, TXT    |
+| Dynamic records   | ❌ |
 
 ## Configuration
-
-### Selectel Provider
-
+Add selectel provider to `config.yaml`.
 ```yaml
 providers:
   selectel:
     class: octodns_selectel.SelectelProvider
     token: env/KEYSTONE_PROJECT_TOKEN
 ```
-
-For receive KEYSTONE_PROJECT_TOKEN read [here](#token-for-selectelprovider)
-
-## Examples
-
-### Create zone and added records
-
-Structure folders
-
+Set **KEYSTONE_PROJECT_TOKEN** environmental variable or write value directly in config without `env/` prefix.  
+How to obtain required token you can read [here](#token-for-selectelprovider)
+## Quickstart
+To get more details on configuration and capabilities check [octodns repository](https://github.com/octodns/octodns)
+#### 1. Organize your configs.
 ```bash
-# e.g. .octodns
-├── config.yaml
-└── zones
-    ├── octodns-test-alias.com.yaml
-    └── octodns-test.com.yaml
-```
+Project
+└── .octodns
+    ├── config.yaml
+    └── zones
+        ├── octodns-test-alias.com.yaml
+        └── octodns-test.com.yaml
 
+```
+#### 2. Fill octodns configuration file
 ```yaml
-# ./config.yaml
+# .octodns/config.yaml
 providers:
   config:
     class: octodns.provider.yaml.YamlProvider
-    directory: ./zones
+    directory: ./octodns/zones
     default_ttl: 3600
     enforce_order: True
   selectel:
     class: octodns_selectel.SelectelProvider
     token: env/KEYSTONE_PROJECT_TOKEN
+
 zones:
   octodns-test.com.:
     sources:
@@ -89,9 +73,9 @@ zones:
     targets:
       - selectel
 ```
-
+#### 3. Prepare config for each of your zones
 ```yaml
-# ./zones/octodns-test.com.yaml
+# .octodns/zones/octodns-test.com.yaml
 '':
   - ttl: 3600
     type: A
@@ -132,13 +116,6 @@ foo:
     type: CNAME
     value: bar.octodns-test.com.
 
-oldns:
-  - ttl: 3600
-    type: NS
-    values:
-      - ns1.selectel.com.
-      - ns2.selectel.com.
-
 sshfp:
   - ttl: 3600
     type: SSHFP
@@ -157,73 +134,65 @@ txt:
       - "bar_txt"
       - "foo_txt"
 ```
-
 ```yaml
-# ./zones/octodns-test-alias.com.yaml
+# .octodns/zones/octodns-test-alias.com.yaml
 '':
   - ttl: 3600
     type: ALIAS
     value: octodns-test.com.
 ```
-
-Use command:
-
+#### 4. Check and apply!
 ```bash
-$octodns-sync --config-file=./config.yaml
+# Run config and check suggested changes
+octodns-sync --config-file=.octodns/config.yaml
+# Apply changes if everything is ok by adding
+octodns-sync --config-file=.octodns/config.yaml --doit
 ```
 
-### Migrating from DNS V1 to DNS V2
+### Current provider vs. Legacy provider
+Current provider is `octodns_selectel.SelectelProvider`  
+Legacy provider is `octodns_selectel.SelectelProviderLegacy`  
 
+They are not compatible. They utilize different API and created zones live on different authoritative servers.
+Zone created in v2 API with current provider is entirely new zone, and not available via v1 api and vice versa.  
+
+If you are going to create new zone, we strongly recommend to use `SelectelProvider`.  
+If you have zones in v1, you still can manage them with `SelectelLegacyProvider`.
+
+If you updated plugin from unstable (0.x.x) version you should rename provider class in octodns config from `SelectelProvider` to `SelectelLegacyProvider` 
+to work with legacy api.
+
+### Migration from legacy DNS API
+If v1 API is still available for you and your zones are hosted there, then you probably would like to move your zones to v2. Legacy API will be eventually shutdown.  
+With octodns you can sync ALL your v1 zone with v2 by using both providers as in example below.  
+❗️IMPORTANT❗️  
+`SELECTEL_TOKEN` and `KEYSTONE_PROJECT_TOKEN` are **different** tokens!  
+Above we mentioned how to get keystone token, how to obtain selectel token read [here](https://developers.selectel.com/docs/control-panel/authorization/#selectel-token-api-key)
 ```yaml
-# ./config-migrate.yaml
 processors:
   # Selectel doesn't allow manage Root NS records
   # for skipping root ns use IgnoreRootNsFilter class
   no-root-ns:
     class: octodns.processor.filter.IgnoreRootNsFilter
+
 providers:
-  selectel_v1:
+  selectel_legacy:
     class: octodns_selectel.SelectelProviderLegacy
     token: env/SELECTEL_TOKEN
-  selectel_v2:
+  selectel:
     class: octodns_selectel.SelectelProvider
     token: env/KEYSTONE_PROJECT_TOKEN
-zones: 
+
+zones:
+  # Using '*' to sync all zones available on account.
   "*":
     sources:
-    - selectel_v1
+      - selectel_legacy
     processors:
     - no-root-ns
     targets:
-    - selectel_v2
+      - selectel
 ```
-
-Use command:
-
-```bash
-$octodns-sync --config-file=./config-migrate.yaml
-```
-
-### Token for SelectelProviderLegacy
-
-Use Selectel Token.
-More information about Selectel Token read [here](https://developers.selectel.com/docs/control-panel/authorization/#selectel-token-api-key).
-
-### Token for SelectelProvider
-
-Use Keystone Project Token.
-More information about Keystone Project Token read [here](https://developers.selectel.com/docs/control-panel/authorization/#project-token).
-
-## Support Information
-
-### Records
-
-SelectelProvider supports A, AAAA, ALIAS, CNAME, MX, NS, SRV, SSHFP and TXT
-
-### Dynamic
-
-SelectelProvider does not support dynamic records.
 
 ## Development
-
 See the [/script/](/script/) directory for some tools to help with the development process. They generally follow the [Script to rule them all](https://github.com/github/scripts-to-rule-them-all) pattern. Most useful is `./script/bootstrap` which will create a venv and install both the runtime and development related requirements. It will also hook up a pre-commit hook that covers most of what's run by CI.
