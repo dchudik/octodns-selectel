@@ -228,7 +228,7 @@ class TestSelectelProvider(TestCase):
                 self.octodns_zone,
                 'sshfp',
                 data=to_octodns_record_data(
-                    self._sshfp_rrset(srv_uuid, 'sshfp')
+                    self._sshfp_rrset(sshfp_uuid, 'sshfp')
                 ),
             )
         )
@@ -564,6 +564,66 @@ class TestSelectelProvider(TestCase):
             zone, '', dict(ttl=60, type="A", values=["1.2.3.4"])
         )
         change = Update(exist_record, exist_record)
+        include_change = provider._include_change(change)
+
+        self.assertFalse(include_change)
+
+    @requests_mock.Mocker()
+    def test_include_change_sshfp_returns_false(self, fake_http):
+        fake_http.get(
+            f'{DNSClient.API_URL}/zones',
+            json=dict(
+                result=self.selectel_zones,
+                limit=len(self.selectel_zones),
+                next_offset=0,
+            ),
+        )
+
+        provider = SelectelProvider(self._version, self._openstack_token)
+        zone = Zone(self._zone_name, [])
+        fingerprint1 = '123456789abcdef'
+        fingerprint2 = 'abcdef123456789'
+        exist_record = Record.new(
+            zone,
+            '',
+            dict(
+                ttl=60,
+                type="SSHFP",
+                values=[
+                    dict(
+                        algorithm=1,
+                        fingerprint_type=1,
+                        fingerprint=fingerprint1,
+                    ),
+                    dict(
+                        algorithm=1,
+                        fingerprint_type=1,
+                        fingerprint=fingerprint2,
+                    ),
+                ],
+            ),
+        )
+        new_record = Record.new(
+            zone,
+            '',
+            dict(
+                ttl=60,
+                type="SSHFP",
+                values=[
+                    dict(
+                        algorithm=1,
+                        fingerprint_type=1,
+                        fingerprint=fingerprint1.upper(),
+                    ),
+                    dict(
+                        algorithm=1,
+                        fingerprint_type=1,
+                        fingerprint=fingerprint2.upper(),
+                    ),
+                ],
+            ),
+        )
+        change = Update(exist_record, new_record)
         include_change = provider._include_change(change)
 
         self.assertFalse(include_change)

@@ -5,7 +5,7 @@
 from logging import getLogger
 
 from octodns.provider.base import BaseProvider
-from octodns.record import Record, Update
+from octodns.record import Record, SshfpRecord, Update
 
 from octodns_selectel.version import version as provider_version
 
@@ -34,6 +34,11 @@ class SelectelProvider(BaseProvider):
             existing = change.existing.data
             new = change.new.data
             new['ttl'] = max(self.MIN_TTL, new['ttl'])
+            if isinstance(change.new, SshfpRecord):
+                for i in range(0, len(change.new.rr_values)):
+                    change.new.rr_values[i].fingerprint = change.new.rr_values[
+                        i
+                    ].fingerprint.lower()
             if new == existing:
                 self.log.debug(
                     '_include_changes: new=%s, found existing=%s', new, existing
