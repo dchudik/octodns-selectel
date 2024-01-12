@@ -2,7 +2,7 @@
 
 An [octoDNS](https://github.com/octodns/octodns/) provider that targets [Selectel DNS](https://docs.selectel.com/cloud-services/dns-hosting/dns_hosting/).
 
-## Table of Contents
+## Contents
 
 * [Installation](#installation)
   * [Command line](#command-line)
