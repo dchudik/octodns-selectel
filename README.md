@@ -106,19 +106,19 @@ providers:
     class: octodns_selectel.SelectelProviderV2
     token: env/KEYSTONE_PROJECT_TOKEN
 zones:
-  octodns-test.ru.:
+  octodns-test.com.:
     sources:
       - config
     targets:
       - selectel_v2
-  octodns-test-alias.ru.:
+  octodns-test-alias.com.:
     sources:
       - config
     targets:
       - selectel_v2
 ```
 
-zones/octodns-test-zone.com.yaml
+zones/octodns-test.com.yaml
 
 ```yaml
 ---
@@ -136,7 +136,7 @@ zones/octodns-test-zone.com.yaml
   - ttl: 3600
     type: MX
     value:
-      exchange: mail1.octodns-test.ru.
+      exchange: mail1.octodns-test.com.
       preference: 10
   - ttl: 3600
     type: TXT
@@ -160,9 +160,9 @@ _sip._tcp:
 foo:
   - ttl: 3600
     type: CNAME
-    value: bar.octodns-test.ru.
+    value: bar.octodns-test.com.
 
-sshfp2:
+sshfp:
   - ttl: 3600
     type: SSHFP
     values:
@@ -173,19 +173,29 @@ sshfp2:
       fingerprint: "123456789abcdef67890123456789abcdef67890123456789abcdef123456789"
       fingerprint_type: 2
 
-txt2:
+txt:
   - ttl: 3600
     type: TXT
     values: 
       - "bar_txt"
       - "foo_txt"
 
-v12:
+oldns:
   - ttl: 3600
     type: NS
     values:
-      - ns1.selectel.ru.
-      - ns2.selectel.ru.
+      - ns1.selectel.com.
+      - ns2.selectel.com.
+```
+
+zones/octodns-test-alias.com.yaml
+
+```yaml
+---
+'':
+  - ttl: 3600
+    type: ALIAS
+    value: octodns-test.com.
 ```
 
 ### Support Information
