@@ -150,7 +150,7 @@ txt:
 Use command:
 
 ```bash
-$octodns-sync --config-file=config.yaml
+$octodns-sync --config-file=./config.yaml
 ```
 
 #### Migrating from DNS V1 to DNS V2
@@ -182,7 +182,7 @@ zones:
 Use command:
 
 ```bash
-$octodns-sync --config-file=config-migrate.yaml
+$octodns-sync --config-file=./config-migrate.yaml
 ```
 
 #### Token for ProviderLegacy
