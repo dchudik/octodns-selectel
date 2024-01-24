@@ -38,28 +38,25 @@ class DNSClient:
             resp_json = resp.json()
         except ValueError:
             resp_json = {}
-        match resp.status_code:
-            case 200 | 201 | 204:
-                return resp_json
-            case 400 | 422:
-                raise ApiException(
-                    f'Bad request. Description: {resp_json.get("description", "Invalid payload")}.'
-                )
-            case 401:
-                raise ApiException(
-                    'Authorization failed. Invalid or empty token.'
-                )
-            case 404:
-                raise ApiException(
-                    'Resource not found: '
-                    f'{resp_json.get("error", "invalid path")}.'
-                )
-            case 409:
-                raise ApiException(
-                    f'Conflict: {resp_json.get("error", "resource maybe already created")}.'
-                )
-            case _:
-                raise ApiException('Internal server error.')
+        if resp.status_code in {200, 201, 204}:
+            return resp_json
+        elif resp.status_code in {400, 422}:
+            raise ApiException(
+                f'Bad request. Description: {resp_json.get("description", "Invalid payload")}.'
+            )
+        elif resp.status_code == 401:
+            raise ApiException('Authorization failed. Invalid or empty token.')
+        elif resp.status_code == 404:
+            raise ApiException(
+                'Resource not found: '
+                f'{resp_json.get("error", "invalid path")}.'
+            )
+        elif resp.status_code == 409:
+            raise ApiException(
+                f'Conflict: {resp_json.get("error", "resource maybe already created")}.'
+            )
+        else:
+            raise ApiException('Internal server error.')
 
     def _request_all_entities(self, path, offset=0) -> list[int]:
         items = []
