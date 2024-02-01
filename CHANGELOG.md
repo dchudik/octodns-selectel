@@ -4,7 +4,6 @@
 
 * Make v1 and v2 directories into modules for correct distribution
 
-
 ## v0.99.0 - 2024-02-01 - Support for DNSv2 API and structural project changes
 
 #### Changes
