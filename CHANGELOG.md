@@ -1,4 +1,4 @@
-## v1.0.0 - 2024-02-01 - Added new SelectelProvider class to support DNS v2 API.
+## v1.0.0 - 2024-02-01 - Support for DNSv2 API and structural project changes
 
 #### Changes
 

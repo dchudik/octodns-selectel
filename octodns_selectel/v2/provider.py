@@ -50,10 +50,10 @@ class SelectelProvider(BaseProvider):
     def _apply(self, plan):
         desired = plan.desired
         changes = plan.changes
-        self.log.debug(
-            '_apply: zone=%s, len(changes)=%d', desired.name, len(changes)
-        )
         zone_name = idna_decode(desired.name)
+        self.log.debug(
+            '_apply: zone=%s, len(changes)=%d', zone_name, len(changes)
+        )
         if not self._is_zone_already_created(zone_name):
             self.create_zone(zone_name)
         zone_id = self._get_zone_id_by_name(zone_name)
