@@ -9,7 +9,7 @@ from octodns.provider import ProviderException
 from octodns.provider.base import BaseProvider
 from octodns.record import Record, Update
 
-from octodns_selectel.utils.escaping_semicolon import (
+from octodns_selectel.escaping_semicolon import (
     escape_semicolon,
     unescape_semicolon,
 )

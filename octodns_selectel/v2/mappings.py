@@ -1,6 +1,6 @@
 from string import Template
 
-from octodns_selectel.utils.escaping_semicolon import (
+from octodns_selectel.escaping_semicolon import (
     escape_semicolon,
     unescape_semicolon,
 )
