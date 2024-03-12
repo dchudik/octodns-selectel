@@ -270,7 +270,7 @@ class TestSelectelMappings(TestCase):
     def test_mapping_record_txt(self):
         txt_list = ["\"Buzz\"", "\"Fizz\""]
         unescaping_dkim_value = "\"v=DKIM1; k=rsa; p=some-key\""
-        escaping_dkim_value = "v=DKIM1\\; k=rsa\\; p=some-key"
+        escaping_dkim_value = "\"v=DKIM1\\; k=rsa\\; p=some-key\""
         test_pairs = (
             PairTest(
                 TxtRecord(
