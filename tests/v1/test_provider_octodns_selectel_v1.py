@@ -259,6 +259,28 @@ class TestSelectelProvider(TestCase):
         )
     )
 
+    # TXT with semicolon
+    api_record.append(
+        {
+            'type': 'TXT',
+            'ttl': 300,
+            'content': 'v=DKIM1; k=rsa; p=some-key',
+            'name': 'text.unit.tests',
+            'id': 16,
+        }
+    )
+    expected.add(
+        Record.new(
+            zone,
+            'text',
+            {
+                'ttl': 200,
+                'type': 'TXT',
+                'value': 'v=DKIM1\\; k=rsa\\; p=some-key',
+            },
+        )
+    )
+
     # SSHFP
     api_record.append(
         {
