@@ -23,7 +23,7 @@ pip install octodns octodns-selectel
 
 | What              | Value                                             |
 |-------------------|---------------------------------------------------|
-| Supported records | A, AAAA, ALIAS, CNAME, MX, NS, SRV, SSHFP, TXT    |
+| Supported records | A, AAAA, ALIAS, CAA, CNAME, DNAME, MX, NS, SRV, SSHFP, TXT    |
 | Dynamic records   | ❌ |
 
 ## Configuration
