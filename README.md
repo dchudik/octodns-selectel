@@ -111,6 +111,19 @@ _sip._tcp:
       target: phone2.example.com.
       weight: 0     
 
+caa:
+  - ttl: 3600
+    type: CAA
+    values:
+    - flags: 0
+      tag: issue
+      value: octodns-test.com.
+
+dname:
+  - ttl: 3600
+    type: DNAME
+    value: octodns-test.com.
+
 foo:
   - ttl: 3600
     type: CNAME
