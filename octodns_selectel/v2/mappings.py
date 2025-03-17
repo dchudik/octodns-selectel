@@ -99,7 +99,9 @@ def to_octodns_record_data(rrset):
     elif rrset_type == "CAA":
         for record in rrset["records"]:
             flag, tag, value = record["content"].split(' ', 2)
-            record_values.append({'flags': flag, 'tag': tag, 'value': value})
+            record_values.append(
+                {'flags': flag, 'tag': tag, 'value': value.strip('"')}
+            )
     elif rrset_type == "MX":
         for record in rrset["records"]:
             preference, exchange = record["content"].split(" ")

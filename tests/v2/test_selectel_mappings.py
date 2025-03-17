@@ -632,7 +632,7 @@ class TestSelectelMappings(TestCase):
             dict(
                 flags="0",
                 tag="issue",
-                value="otherca.com;accounturi=https://otherca.com/acct/123456",
+                value="otherca.com; accounturi=https://otherca.com/acct/123456",
             ),
         ]
         caa_list_str = [
