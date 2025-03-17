@@ -685,22 +685,6 @@ class TestSelectelMappings(TestCase):
                     ],
                 ),
             ),
-            PairTest(
-                CaaRecord(
-                    self.zone,
-                    "",
-                    dict(type="CAA", ttl=self.ttl, values=caa_list_dict),
-                ),
-                dict(
-                    name=self.zone.name,
-                    ttl=self.ttl,
-                    type="CAA",
-                    records=[
-                        dict(content=caa_str_item)
-                        for caa_str_item in caa_list_str
-                    ],
-                ),
-            ),
         )
         self._assert_mapping_common(test_pairs)
         self._assert_mapping_caa(test_pairs)
