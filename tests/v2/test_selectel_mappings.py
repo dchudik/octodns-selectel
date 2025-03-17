@@ -629,6 +629,11 @@ class TestSelectelMappings(TestCase):
             dict(
                 flags="0", tag="iodef", value="mailto:notification@example.com"
             ),
+            dict(
+                flags="0",
+                tag="issue",
+                value="otherca.com;accounturi=https://otherca.com/acct/123456",
+            ),
         ]
         caa_list_str = [
             self._caa_to_string(caa_dict_item)
@@ -656,6 +661,22 @@ class TestSelectelMappings(TestCase):
                 ),
                 dict(
                     name=f"caa.{self.zone.name}",
+                    ttl=self.ttl,
+                    type="CAA",
+                    records=[
+                        dict(content=caa_str_item)
+                        for caa_str_item in caa_list_str
+                    ],
+                ),
+            ),
+            PairTest(
+                CaaRecord(
+                    self.zone,
+                    "",
+                    dict(type="CAA", ttl=self.ttl, values=caa_list_dict),
+                ),
+                dict(
+                    name=self.zone.name,
                     ttl=self.ttl,
                     type="CAA",
                     records=[
