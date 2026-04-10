@@ -117,7 +117,9 @@ class TestSelectelProvider(TestCase):
             ),
             type='SSHFP',
             ttl=self._ttl,
-            records=[dict(content='1 1 123456789abcdef')],
+            records=[
+                dict(content='1 1 123456789abcdef0000000000000000000000000')
+            ],
         )
 
     def setUp(self):
@@ -579,8 +581,8 @@ class TestSelectelProvider(TestCase):
 
         provider = SelectelProvider(self._version, self._openstack_token)
         zone = Zone(self._zone_name, [])
-        fingerprint1 = '123456789abcdef'
-        fingerprint2 = 'abcdef123456789'
+        fingerprint1 = '123456789abcdef0000000000000000000000000'
+        fingerprint2 = 'abcdef1234567890000000000000000000000000'
         exist_record = Record.new(
             zone,
             '',

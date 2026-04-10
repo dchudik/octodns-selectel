@@ -288,7 +288,7 @@ class TestSelectelProvider(TestCase):
             'ttl': 800,
             'algorithm': 1,
             'fingerprint_type': 1,
-            'fingerprint': "123456789abcdef",
+            'fingerprint': "123456789abcdef0000000000000000000000000",
             'id': 17,
             'name': 'sshfp.unit.tests',
         }
@@ -303,7 +303,7 @@ class TestSelectelProvider(TestCase):
                 'value': {
                     'algorithm': 1,
                     'fingerprint_type': 1,
-                    'fingerprint': "123456789abcdef",
+                    'fingerprint': "123456789abcdef0000000000000000000000000",
                 },
             },
         )
